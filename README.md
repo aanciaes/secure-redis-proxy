@@ -1,5 +1,7 @@
 # Redis Secure Client - Homomorphic Encryption
 
+![Build and Test](https://github.com/aanciaes/redis-homomorphic-enc/workflows/Build%20and%20Test/badge.svg)
+
 This project is an example of a client interacting with a non-secure Redis server.
 To maintain the data secure, it encrypts all data before communicating with the Redis server, therefor, all data stored 
 inside the server is completely encrypted and not accessible to anyone without the decryption keys, including rouge system 
