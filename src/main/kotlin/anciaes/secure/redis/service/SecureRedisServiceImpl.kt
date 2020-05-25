@@ -3,17 +3,25 @@ package anciaes.secure.redis.service
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
 import redis.clients.jedis.Jedis
+import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 import java.nio.charset.Charset
+import java.security.KeyStore
 import java.util.Base64
 import java.util.Properties
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManagerFactory
 
 class SecureRedisServiceImpl(props: Properties) : RedisService {
 
     private val redisHost = props.getProperty("redis.host", "localhost")
     private val redisPort = props.getProperty("redis.port", "6379").toInt()
-    private val jedis: Jedis = Jedis(redisHost, redisPort)
+    private val jedis: Jedis = buildJedisClient(props)
 
     // Homo Det Keys
     private val homoDetSecret = props.getProperty("encryption.det.secret")
@@ -115,5 +123,78 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
         cipher.update(Base64.getDecoder().decode(cipherText))
         val encryptedBytes = cipher.doFinal()
         return String(encryptedBytes)
+    }
+
+    private fun buildJedisClient(applicationProperties: Properties): Jedis {
+        val redisHost = applicationProperties.getProperty("redis.host", "localhost")
+        val redisPort = applicationProperties.getProperty("redis.port", "6379").toInt()
+
+        val tls = applicationProperties.getProperty("redis.tls")?.toBoolean() ?: false
+
+        return if (tls) {
+            val clientKeyStore = applicationProperties.getProperty("redis.tls.keystore.path")
+            val clientKeyStorePassword = applicationProperties.getProperty("redis.tls.keystore.password")
+            val clientTrustStore = applicationProperties.getProperty("redis.tls.truststore.path")
+            val clientTrustStorePassword = applicationProperties.getProperty("redis.tls.truststore.password")
+
+            if (clientKeyStore.isNullOrBlank() || clientKeyStorePassword.isNullOrBlank() || clientTrustStore.isNullOrBlank() || clientTrustStorePassword.isNullOrBlank()) {
+                throw RuntimeException("There are missing TLS configurations. Check application.conf file")
+            }
+
+            Jedis(
+                redisHost,
+                redisPort,
+                true,
+                getSSLContext(clientKeyStore, clientKeyStorePassword, clientTrustStore, clientTrustStorePassword),
+                null,
+                null
+            )
+
+        } else {
+            Jedis(redisHost, redisPort)
+        }
+    }
+
+    private fun getSSLContext(
+        clientKeyStorePath: String,
+        clientKeyStorePassword: String,
+        clientTrustStorePath: String,
+        clientTrustStorePassword: String
+    ): SSLSocketFactory? {
+
+        /*
+          Client key and certificates are sent to server so it can authenticate the client
+         */
+        val clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+        val inputStream: InputStream =
+            FileInputStream(File(clientKeyStorePath))
+        clientKeyStore.load(inputStream, clientKeyStorePassword.toCharArray())
+        val keyManagerFactory = KeyManagerFactory.getInstance(
+            KeyManagerFactory.getDefaultAlgorithm()
+        )
+        keyManagerFactory.init(clientKeyStore, clientKeyStorePassword.toCharArray())
+
+        /*
+         * CA certificate is used to authenticate server
+         */
+        val caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+        val caInputStream: InputStream =
+            FileInputStream(File(clientTrustStorePath))
+        caKeyStore.load(caInputStream, clientTrustStorePassword.toCharArray())
+        val trustManagerFactory = TrustManagerFactory.getInstance(
+            TrustManagerFactory.getDefaultAlgorithm()
+        )
+        trustManagerFactory.init(caKeyStore)
+
+        /*
+         * Create SSL socket factory
+         */
+        val context = SSLContext.getInstance("TLSv1.2")
+        context.init(keyManagerFactory.keyManagers, trustManagerFactory.trustManagers, null)
+
+        /*
+         * Return the newly created socket factory object
+         */
+        return context.socketFactory
     }
 }
