@@ -31,6 +31,18 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
     private val valueKey = SecretKeySpec(valueSecret.toByteArray(Charset.defaultCharset()), valueAlgorithm)
 
     init {
+        val username = props.getProperty("redis.auth.username")
+        val password = props.getProperty("redis.auth.password")
+
+        if (!password.isNullOrBlank()) {
+            // Backwards compatibility. For older Redis versions that do not support ACL
+            if (username.isNullOrBlank()) {
+                jedis.auth(password)
+            } else {
+                jedis.auth(username, password)
+            }
+        }
+
         if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
     }
 

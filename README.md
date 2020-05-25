@@ -15,9 +15,7 @@ to the Redis server.
 
 ## How to Run
 
-1. A Redis server must be running.
-To quickly deploy a Redis server using Docker use `docker run -d -p 6379:6379 redis:6.0.3`.
-
+1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
 2. Navigate to `src/main/resources/application.conf` and change the configuration at will.
 3. `./gradlew clean build`
 4. `./gradlew run`
@@ -37,6 +35,13 @@ List of available commands:
     help
     exit
 ```
+
+## Deploy a Local Redis Server
+
+To quickly deploy a Redis server using Docker use `docker run -d -p 6379:6379 redis:6.0.3`.
+
+To deploy a Redis server with a custom configuration file, modify the config file provided [here](redis.conf) and run
+from the project root the command `docker run -d -p 6379:6379 -v $PWD/redis.conf:/usr/local/etc/redis/redis.conf redis:6.0.3 redis-server /usr/local/etc/redis/redis.conf`
 
 ## Enhancements and Bugs
 
