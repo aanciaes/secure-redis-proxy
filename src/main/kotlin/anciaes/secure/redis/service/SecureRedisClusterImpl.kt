@@ -3,16 +3,20 @@ package anciaes.secure.redis.service
 import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
+import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisCluster
 import java.nio.charset.Charset
 import java.util.Base64
+import java.util.HashSet
 import java.util.Properties
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
-class SecureRedisServiceImpl(props: Properties) : RedisService {
+class SecureRedisClusterImpl(props: Properties) : RedisService {
 
-    private val jedis: Jedis = buildJedisClient(props)
+    private val jedis: JedisCluster = buildJedisClusterClient(props)
 
     // Homo Det Keys
     private val homoDetSecret = props.getProperty("encryption.det.secret")
@@ -28,22 +32,6 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
     private val valueAlgorithm = valueCipherSuite.split("/")[0]
     private val valueSecret = props.getProperty("encryption.value.secret")
     private val valueKey = SecretKeySpec(valueSecret.toByteArray(Charset.defaultCharset()), valueAlgorithm)
-
-    init {
-        val username = props.getProperty("redis.auth.username")
-        val password = props.getProperty("redis.auth.password")
-
-        if (!password.isNullOrBlank()) {
-            // Backwards compatibility. For older Redis versions that do not support ACL
-            if (username.isNullOrBlank()) {
-                jedis.auth(password)
-            } else {
-                jedis.auth(username, password)
-            }
-        }
-
-        if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
-    }
 
     override fun set(key: String, value: String): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
@@ -95,7 +83,7 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
     }
 
     override fun flushAll(): String {
-        return jedis.flushAll()
+        return "Error: Flush all for cluster is not supported yet..."
     }
 
     private fun encryptValue(value: String): String {
@@ -116,38 +104,63 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
         return String(encryptedBytes)
     }
 
-    private fun buildJedisClient(applicationProperties: Properties): Jedis {
-        val redisHost = applicationProperties.getProperty("redis.host", "localhost")
-        val redisPort = applicationProperties.getProperty("redis.port", "6379").toInt()
+    private fun buildJedisClusterClient(props: Properties): JedisCluster {
+        val clusterNodes = props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() }
+            ?: throw RuntimeException("No cluster nodes provided")
 
-        val tls = applicationProperties.getProperty("redis.tls")?.toBoolean() ?: false
+        val jedisClusterNodes: MutableSet<HostAndPort> = HashSet()
+        clusterNodes.forEach {
+            jedisClusterNodes.add(HostAndPort.parseString(it))
+        }
 
+        val username = props.getProperty("redis.auth.username")
+        val password = props.getProperty("redis.auth.password")
+
+        val tls = props.getProperty("redis.tls")?.toBoolean() ?: false
         return if (tls) {
-            val clientKeyStore = applicationProperties.getProperty("redis.tls.keystore.path")
-            val clientKeyStorePassword = applicationProperties.getProperty("redis.tls.keystore.password")
-            val clientTrustStore = applicationProperties.getProperty("redis.tls.truststore.path")
-            val clientTrustStorePassword = applicationProperties.getProperty("redis.tls.truststore.password")
+            val clientKeyStore = props.getProperty("redis.tls.keystore.path")
+            val clientKeyStorePassword = props.getProperty("redis.tls.keystore.password")
+            val clientTrustStore = props.getProperty("redis.tls.truststore.path")
+            val clientTrustStorePassword = props.getProperty("redis.tls.truststore.password")
 
             if (clientKeyStore.isNullOrBlank() || clientKeyStorePassword.isNullOrBlank() || clientTrustStore.isNullOrBlank() || clientTrustStorePassword.isNullOrBlank()) {
                 throw RuntimeException("There are missing TLS configurations. Check application.conf file")
             }
 
-            Jedis(
-                redisHost,
-                redisPort,
+            val sslContext = SSLUtils.getSSLContext(
+                clientKeyStore,
+                clientKeyStorePassword,
+                clientTrustStore,
+                clientTrustStorePassword
+            )
+
+            JedisCluster(
+                jedisClusterNodes,
+                2000,
+                2000,
+                5,
+                username,
+                password,
+                "redis-cluster",
+                GenericObjectPoolConfig<Any>(),
                 true,
-                SSLUtils.getSSLContext(
-                    clientKeyStore,
-                    clientKeyStorePassword,
-                    clientTrustStore,
-                    clientTrustStorePassword
-                ),
+                sslContext,
+                null,
                 null,
                 null
             )
-
         } else {
-            Jedis(redisHost, redisPort)
+            JedisCluster(
+                jedisClusterNodes,
+                2000,
+                2000,
+                5,
+                username,
+                password,
+                "default",
+                GenericObjectPoolConfig<Any>(),
+                false
+            )
         }
     }
 }
