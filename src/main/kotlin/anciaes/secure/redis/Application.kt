@@ -9,15 +9,24 @@ import java.util.Properties
 fun main() {
     val props = readPropertiesFile("/application.conf")
     val redisService: RedisService = if (props.getProperty("application.secure")?.toBoolean() == true) {
-        println("Initializing Secure Redis...")
-        SecureRedisServiceImpl(props)
-    } else {
-        println("Initializing Non-Secure Redis...")
+
         val isCluster = props.getProperty("redis.cluster")?.toBoolean() ?: false
 
         if (isCluster) {
+            println("Initializing Secure Redis Cluster...")
+            SecureRedisServiceImpl(props)
+        } else {
+            println("Initializing Secure Redis...")
+            SecureRedisServiceImpl(props)
+        }
+    } else {
+        val isCluster = props.getProperty("redis.cluster")?.toBoolean() ?: false
+
+        if (isCluster) {
+            println("Initializing Non-Secure Redis Cluster...")
             RedisClusterServiceImpl(props)
         } else {
+            println("Initializing Non-Secure Redis...")
             RedisServiceImpl(props)
         }
     }

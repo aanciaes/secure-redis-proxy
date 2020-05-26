@@ -1,55 +1,110 @@
 package anciaes.secure.redis.service
 
 import anciaes.secure.redis.utils.SSLUtils
+import hlib.hj.mlib.HomoDet
+import hlib.hj.mlib.HomoOpeInt
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.HostAndPort
+import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisCluster
+import java.nio.charset.Charset
+import java.util.Base64
 import java.util.HashSet
 import java.util.Properties
+import javax.crypto.Cipher
+import javax.crypto.spec.SecretKeySpec
 
-class RedisClusterServiceImpl(props: Properties) : RedisService {
+class SecureRedisClusterImpl(props: Properties) : RedisService {
 
-    private val jedis: JedisCluster = buildRedisClusterClient(props)
+    private val jedis: JedisCluster = buildJedisClusterClient(props)
+
+    // Homo Det Keys
+    private val homoDetSecret = props.getProperty("encryption.det.secret")
+    private val secretKey = HomoDet.keyFromString(homoDetSecret)
+
+    // Homo Ope Int Keys
+    val opeSecret = props.getProperty("encryption.ope.secret")
+    val ope = HomoOpeInt(opeSecret)
+
+    // Value Keys
+    private val valueProvider = props.getProperty("encryption.value.provider")
+    private val valueCipherSuite = props.getProperty("encryption.value.algorithm")
+    private val valueAlgorithm = valueCipherSuite.split("/")[0]
+    private val valueSecret = props.getProperty("encryption.value.secret")
+    private val valueKey = SecretKeySpec(valueSecret.toByteArray(Charset.defaultCharset()), valueAlgorithm)
 
     override fun set(key: String, value: String): String {
-        return jedis.set(key, value)
+        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedValue = encryptValue(value)
+        return jedis.set(encryptedKey, encryptedValue)
     }
 
     override fun get(key: String): String {
-        return jedis.get(key) ?: "(nil)"
+        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        return when (val value = jedis.get(encryptedKey)) {
+            null -> "(nil)"
+            else -> decryptValue(value)
+        }
     }
 
     override fun del(key: String): String {
-        return if (jedis.del(key) == 1L) "OK" else "NOK"
+        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        return if (jedis.del(encryptedKey) == 1L) "OK" else "NOK"
     }
 
     override fun zadd(key: String, score: String, value: String): String {
-        val scoreDouble = try {
-            score.toDouble()
+        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedScoreDouble = try {
+            val scoreInt = score.toInt()
+            ope.encrypt(scoreInt).toDouble()
         } catch (e: NumberFormatException) {
             return "NOK - Score must be a number"
         }
-        return if (jedis.zadd(key, scoreDouble, value) == 1L) "OK" else "NOK"
+
+        val encryptedValue = encryptValue(value)
+        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, encryptedValue) == 1L) "OK" else "NOK"
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<String> {
+        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        var encryptedMin = "-inf"
+        var encryptedMax = "+inf"
+
         try {
             if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
-                min.toDouble()
-                max.toDouble()
+                encryptedMin = ope.encrypt(min.toInt()).toString()
+                encryptedMax = ope.encrypt(max.toInt()).toString()
             }
         } catch (e: NumberFormatException) {
             return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
         }
 
-        return jedis.zrangeByScore(key, min, max).toList()
+        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { decryptValue(it) }
     }
 
     override fun flushAll(): String {
         return "Error: Flush all for cluster is not supported yet..."
     }
 
-    private fun buildRedisClusterClient(props: Properties): JedisCluster {
+    private fun encryptValue(value: String): String {
+        val cipher: Cipher = Cipher.getInstance(valueCipherSuite, valueProvider)
+        cipher.init(Cipher.ENCRYPT_MODE, valueKey)
+
+        cipher.update(value.toByteArray(Charset.defaultCharset()))
+        val encryptedBytes = cipher.doFinal()
+        return Base64.getEncoder().encodeToString(encryptedBytes)
+    }
+
+    private fun decryptValue(cipherText: String): String {
+        val cipher: Cipher = Cipher.getInstance(valueCipherSuite, valueProvider)
+        cipher.init(Cipher.DECRYPT_MODE, valueKey)
+
+        cipher.update(Base64.getDecoder().decode(cipherText))
+        val encryptedBytes = cipher.doFinal()
+        return String(encryptedBytes)
+    }
+
+    private fun buildJedisClusterClient(props: Properties): JedisCluster {
         val clusterNodes = props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() }
             ?: throw RuntimeException("No cluster nodes provided")
 
