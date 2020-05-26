@@ -111,3 +111,13 @@ from the project root the command `docker run -d -p 6379:6379 -v $PWD/redis.conf
 ## Enhancements and Bugs
 
 Check github issues [here](https://github.com/aanciaes/redis-homomorphic-enc/issues).
+
+## Milestones
+
+Check github milestones [here](https://github.com/aanciaes/redis-homomorphic-enc/milestones).
+
+Current milestones:
+
+* [0.1](https://github.com/aanciaes/redis-homomorphic-enc/milestone/1)
+* [0.2](https://github.com/aanciaes/redis-homomorphic-enc/milestone/2)
+* [0.3](https://github.com/aanciaes/redis-homomorphic-enc/milestone/3)
