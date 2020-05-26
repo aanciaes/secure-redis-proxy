@@ -1,26 +1,17 @@
 package anciaes.secure.redis.service
 
+import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
 import redis.clients.jedis.Jedis
-import java.io.File
-import java.io.FileInputStream
-import java.io.InputStream
 import java.nio.charset.Charset
-import java.security.KeyStore
 import java.util.Base64
 import java.util.Properties
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
-import javax.net.ssl.KeyManagerFactory
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocketFactory
-import javax.net.ssl.TrustManagerFactory
 
 class SecureRedisServiceImpl(props: Properties) : RedisService {
 
-    private val redisHost = props.getProperty("redis.host", "localhost")
-    private val redisPort = props.getProperty("redis.port", "6379").toInt()
     private val jedis: Jedis = buildJedisClient(props)
 
     // Homo Det Keys
@@ -145,7 +136,12 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
                 redisHost,
                 redisPort,
                 true,
-                getSSLContext(clientKeyStore, clientKeyStorePassword, clientTrustStore, clientTrustStorePassword),
+                SSLUtils.getSSLContext(
+                    clientKeyStore,
+                    clientKeyStorePassword,
+                    clientTrustStore,
+                    clientTrustStorePassword
+                ),
                 null,
                 null
             )
@@ -153,48 +149,5 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
         } else {
             Jedis(redisHost, redisPort)
         }
-    }
-
-    private fun getSSLContext(
-        clientKeyStorePath: String,
-        clientKeyStorePassword: String,
-        clientTrustStorePath: String,
-        clientTrustStorePassword: String
-    ): SSLSocketFactory? {
-
-        /*
-          Client key and certificates are sent to server so it can authenticate the client
-         */
-        val clientKeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-        val inputStream: InputStream =
-            FileInputStream(File(clientKeyStorePath))
-        clientKeyStore.load(inputStream, clientKeyStorePassword.toCharArray())
-        val keyManagerFactory = KeyManagerFactory.getInstance(
-            KeyManagerFactory.getDefaultAlgorithm()
-        )
-        keyManagerFactory.init(clientKeyStore, clientKeyStorePassword.toCharArray())
-
-        /*
-         * CA certificate is used to authenticate server
-         */
-        val caKeyStore = KeyStore.getInstance(KeyStore.getDefaultType())
-        val caInputStream: InputStream =
-            FileInputStream(File(clientTrustStorePath))
-        caKeyStore.load(caInputStream, clientTrustStorePassword.toCharArray())
-        val trustManagerFactory = TrustManagerFactory.getInstance(
-            TrustManagerFactory.getDefaultAlgorithm()
-        )
-        trustManagerFactory.init(caKeyStore)
-
-        /*
-         * Create SSL socket factory
-         */
-        val context = SSLContext.getInstance("TLSv1.2")
-        context.init(keyManagerFactory.keyManagers, trustManagerFactory.trustManagers, null)
-
-        /*
-         * Return the newly created socket factory object
-         */
-        return context.socketFactory
     }
 }

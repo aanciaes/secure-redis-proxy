@@ -1,5 +1,6 @@
 package anciaes.secure.redis
 
+import anciaes.secure.redis.service.RedisClusterServiceImpl
 import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
 import anciaes.secure.redis.service.SecureRedisServiceImpl
@@ -8,11 +9,17 @@ import java.util.Properties
 fun main() {
     val props = readPropertiesFile("/application.conf")
     val redisService: RedisService = if (props.getProperty("application.secure")?.toBoolean() == true) {
-        println ("Initializing Secure Redis...")
+        println("Initializing Secure Redis...")
         SecureRedisServiceImpl(props)
     } else {
-        println ("Initializing Non-Secure Redis...")
-        RedisServiceImpl(props)
+        println("Initializing Non-Secure Redis...")
+        val isCluster = props.getProperty("redis.cluster")?.toBoolean() ?: false
+
+        if (isCluster) {
+            RedisClusterServiceImpl(props)
+        } else {
+            RedisServiceImpl(props)
+        }
     }
 
     var exit = false
