@@ -36,6 +36,12 @@ List of available commands:
     exit
 ```
 
+### Available Configurations
+
+```
+TBD
+```
+
 ## Deploy a Local Redis Server
 
 To quickly deploy a Redis server using Docker use `docker run -d -p 6379:6379 redis:6.0.3`.
