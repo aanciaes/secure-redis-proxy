@@ -1,10 +1,11 @@
 package anciaes.secure.redis
 
-import anciaes.secure.redis.service.RedisClusterServiceImpl
+import anciaes.secure.redis.service.RedisClusterImpl
 import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
 import anciaes.secure.redis.service.SecureRedisServiceImpl
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 
 fun main() {
     val props = readPropertiesFile("/application.conf")
@@ -24,7 +25,7 @@ fun main() {
 
         if (isCluster) {
             println("Initializing Non-Secure Redis Cluster...")
-            RedisClusterServiceImpl(props)
+            RedisClusterImpl(props)
         } else {
             println("Initializing Non-Secure Redis...")
             RedisServiceImpl(props)
@@ -44,10 +45,28 @@ fun executeCommand(redisService: RedisService, command: List<String>): Boolean {
     when (command[0]) {
         "exit" -> return true
         "set" -> {
-            if (command.size != 3) {
-                println("Wrong number of arguments. Usage: set <key> <value>")
+            if (command.size != 3 && command.size != 4 && command.size != 5) {
+                println("Wrong number of arguments. Usage: set <key> <value> [expiration [ms|s]]")
             } else {
-                println(redisService.set(command[1], command[2]))
+                val timeUnit = when (command.getOrNull(4)) {
+                    "ms" -> TimeUnit.MILLISECONDS
+                    "s" -> TimeUnit.SECONDS
+                    null -> null
+                    else -> TimeUnit.SECONDS
+                }
+
+                try {
+                    println(
+                        redisService.set(
+                            key = command[1],
+                            value = command[2],
+                            expiration = command.getOrNull(3)?.toLong(),
+                            timeUnit = timeUnit
+                        )
+                    )
+                } catch (e: NumberFormatException) {
+                    println("Expiration should be an integer... Operation failed")
+                }
             }
         }
         "get" -> {
@@ -93,7 +112,7 @@ fun printHelp() {
     println("Usage: $ command [options]")
     println()
     println("List of available commands:")
-    println("\tset <key> <value>")
+    println("\tset <key> <value> [expiration [ms|s]]")
     println("\tget <key>")
     println("\tdel <key>")
     println("\tzadd <key> <score> <value>")

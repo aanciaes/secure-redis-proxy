@@ -1,7 +1,9 @@
 package anciaes.secure.redis.service
 
+import java.util.concurrent.TimeUnit
+
 interface RedisService {
-    fun set(key: String, value: String): String
+    fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String
     fun get(key: String): String
     fun del(key: String): String
 
