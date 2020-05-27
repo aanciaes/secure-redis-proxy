@@ -26,7 +26,7 @@ to the Redis server.
 Usage: $ command [options]
 
 List of available commands:
-    set <key> <value>
+    set <key> <value> [expiration [ms|s]]
     get <key>
     del <key>
     zadd <key> <score> <value>
