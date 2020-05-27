@@ -2,7 +2,9 @@ package anciaes.secure.redis.service
 
 import anciaes.secure.redis.utils.SSLUtils
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.params.SetParams
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 
 class RedisServiceImpl(props: Properties) : RedisService {
 
@@ -24,8 +26,18 @@ class RedisServiceImpl(props: Properties) : RedisService {
         if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
     }
 
-    override fun set(key: String, value: String): String {
-        return jedis.set(key, value)
+    override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
+        return if (expiration != null) {
+            val expirationParams = SetParams()
+            when (timeUnit) {
+                TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
+                else -> expirationParams.ex(expiration.toInt())
+            }
+
+            jedis.set(key, value, expirationParams)
+        } else {
+            jedis.set(key, value)
+        }
     }
 
     override fun get(key: String): String {

@@ -4,9 +4,11 @@ import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.params.SetParams
 import java.nio.charset.Charset
 import java.util.Base64
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -45,10 +47,21 @@ class SecureRedisServiceImpl(props: Properties) : RedisService {
         if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
     }
 
-    override fun set(key: String, value: String): String {
+    override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
         val encryptedValue = encryptValue(value)
-        return jedis.set(encryptedKey, encryptedValue)
+
+        return if (expiration != null) {
+            val expirationParams = SetParams()
+            when (timeUnit) {
+                TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
+                else -> expirationParams.ex(expiration.toInt())
+            }
+
+            jedis.set(encryptedKey, encryptedValue, expirationParams)
+        } else {
+            jedis.set(encryptedKey, encryptedValue)
+        }
     }
 
     override fun get(key: String): String {

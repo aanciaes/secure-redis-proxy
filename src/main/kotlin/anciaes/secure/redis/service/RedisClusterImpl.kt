@@ -4,15 +4,27 @@ import anciaes.secure.redis.utils.SSLUtils
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.JedisCluster
+import redis.clients.jedis.params.SetParams
 import java.util.HashSet
 import java.util.Properties
+import java.util.concurrent.TimeUnit
 
-class RedisClusterServiceImpl(props: Properties) : RedisService {
+class RedisClusterImpl(props: Properties) : RedisService {
 
     private val jedis: JedisCluster = buildRedisClusterClient(props)
 
-    override fun set(key: String, value: String): String {
-        return jedis.set(key, value)
+    override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
+        return if (expiration != null) {
+            val expirationParams = SetParams()
+            when (timeUnit) {
+                TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
+                else -> expirationParams.ex(expiration.toInt())
+            }
+
+            jedis.set(key, value, expirationParams)
+        } else {
+            jedis.set(key, value)
+        }
     }
 
     override fun get(key: String): String {
