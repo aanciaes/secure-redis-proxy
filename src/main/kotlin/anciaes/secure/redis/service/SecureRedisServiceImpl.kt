@@ -12,7 +12,10 @@ import java.security.Signature
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
@@ -113,11 +116,18 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val encryptedValue = encryptValue(value)
         val signedValue = signData(value)
 
-        return "$encryptedValue|$signedValue"
+        val compositeValue = "$encryptedValue|$signedValue"
+        val hash = computeIntegrityHash(compositeValue)
+        return "$encryptedValue|$signedValue|$hash"
     }
 
     private fun getSecureValue(secureValue: String): String {
         val composite = secureValue.split("|")
+
+        val integrityCheck = computeIntegrityHash("${composite[0]}|${composite[1]}")
+        if (integrityCheck != composite[2]) {
+            return "Integrity Validation Failed... Data might was tampered."
+        }
         val value = decryptValue(composite[0])
 
         return if (verifySignature(value, composite[1])) {
@@ -186,6 +196,23 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         signature.update(data.toByteArray())
 
         return signature.verify(Base64.getDecoder().decode(signatureString))
+    }
+
+    private fun computeIntegrityHash (test: String): String {
+        val hMac = Mac.getInstance(props.dataHMacAlgorithm, props.dataHMacProvider)
+
+        val integrityKey = KeystoreUtils.getKeyFromKeyStore(
+            props.dataHMacKeystoreType!!,
+            props.dataHMacKeystore!!,
+            props.dataHMacKeystorePassword!!,
+            props.dataHMacKeyName!!,
+            props.dataHMacKeyPassword!!
+        )!!
+
+        hMac.init(integrityKey)
+        hMac.update(test.toByteArray())
+
+        return Base64.getEncoder().encodeToString(hMac.doFinal())
     }
 
     private fun buildJedisClient(applicationProperties: ApplicationProperties): Jedis {
