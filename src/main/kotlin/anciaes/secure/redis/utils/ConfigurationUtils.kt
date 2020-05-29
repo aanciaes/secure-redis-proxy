@@ -14,7 +14,7 @@ object ConfigurationUtils {
             props.getProperty("redis.port")?.toInt() ?: 6379,
             props.getProperty("redis.auth.username"),
             props.getProperty("redis.auth.password"),
-            props.getProperty("redis.tls")!!.toBoolean(),
+            props.getProperty("redis.tls")?.toBoolean() ?: false,
             props.getProperty("redis.keystore.path"),
             props.getProperty("redis.keystore.password"),
             props.getProperty("redis.truststore.path"),

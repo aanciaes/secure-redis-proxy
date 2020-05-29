@@ -84,8 +84,8 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             return "NOK - Score must be a number"
         }
 
-        val encryptedValue = encryptValue(value)
-        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, encryptedValue) == 1L) "OK" else "NOK"
+        val secureValue = computeSecureValue(value)
+        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, secureValue) == 1L) "OK" else "NOK"
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<String> {
@@ -102,14 +102,14 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
         }
 
-        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { decryptValue(it) }
+        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { getSecureValue(it) }
     }
 
     override fun flushAll(): String {
         return jedis.flushAll()
     }
 
-    private fun computeSecureValue (value: String): String {
+    private fun computeSecureValue(value: String): String {
         val encryptedValue = encryptValue(value)
         val signedValue = signData(value)
 

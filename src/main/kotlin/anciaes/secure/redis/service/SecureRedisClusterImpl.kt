@@ -1,6 +1,7 @@
 package anciaes.secure.redis.service
 
 import anciaes.secure.redis.model.ApplicationProperties
+import anciaes.secure.redis.utils.KeystoreUtils
 import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
@@ -9,13 +10,14 @@ import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.JedisCluster
 import redis.clients.jedis.params.SetParams
 import java.nio.charset.Charset
+import java.security.Signature
 import java.util.Base64
 import java.util.HashSet
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
-class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
+class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private val jedis: JedisCluster = buildJedisClusterClient(props)
 
@@ -26,15 +28,13 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
     val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
 
     // Value Keys
-    private val dataEncryptionProvider = props.dataEncryptionProvider
-    private val dataEncryptionCipherSuite = props.dataEncryptionCipherSuite
     private val valueAlgorithm = props.dataEncryptionCipherSuite!!.split("/")[0]
     private val valueKey =
         SecretKeySpec(props.dataEncryptionSecret!!.toByteArray(Charset.defaultCharset()), valueAlgorithm)
 
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
-        val encryptedValue = encryptValue(value)
+        val secureValue = computeSecureValue(value)
 
         return if (expiration != null) {
             val expirationParams = SetParams()
@@ -43,9 +43,9 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
                 else -> expirationParams.ex(expiration.toInt())
             }
 
-            jedis.set(encryptedKey, encryptedValue, expirationParams)
+            jedis.set(encryptedKey, secureValue, expirationParams)
         } else {
-            jedis.set(encryptedKey, encryptedValue)
+            jedis.set(encryptedKey, secureValue)
         }
     }
 
@@ -53,7 +53,7 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
         return when (val value = jedis.get(encryptedKey)) {
             null -> "(nil)"
-            else -> decryptValue(value)
+            else -> getSecureValue(value)
         }
     }
 
@@ -71,8 +71,8 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
             return "NOK - Score must be a number"
         }
 
-        val encryptedValue = encryptValue(value)
-        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, encryptedValue) == 1L) "OK" else "NOK"
+        val secureValue = computeSecureValue(value)
+        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, secureValue) == 1L) "OK" else "NOK"
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<String> {
@@ -89,15 +89,33 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
             return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
         }
 
-        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { decryptValue(it) }
+        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { getSecureValue(it) }
     }
 
     override fun flushAll(): String {
         return "Error: Flush all for cluster is not supported yet..."
     }
 
+    private fun computeSecureValue(value: String): String {
+        val encryptedValue = encryptValue(value)
+        val signedValue = signData(value)
+
+        return "$encryptedValue|$signedValue"
+    }
+
+    private fun getSecureValue(secureValue: String): String {
+        val composite = secureValue.split("|")
+        val value = decryptValue(composite[0])
+
+        return if (verifySignature(value, composite[1])) {
+            value
+        } else {
+            "Error verifying authenticity..."
+        }
+    }
+
     private fun encryptValue(value: String): String {
-        val cipher: Cipher = Cipher.getInstance(dataEncryptionCipherSuite, dataEncryptionProvider)
+        val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
         cipher.init(Cipher.ENCRYPT_MODE, valueKey)
 
         cipher.update(value.toByteArray(Charset.defaultCharset()))
@@ -106,12 +124,54 @@ class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
     }
 
     private fun decryptValue(cipherText: String): String {
-        val cipher: Cipher = Cipher.getInstance(dataEncryptionCipherSuite, dataEncryptionProvider)
+        val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
         cipher.init(Cipher.DECRYPT_MODE, valueKey)
 
         cipher.update(Base64.getDecoder().decode(cipherText))
         val encryptedBytes = cipher.doFinal()
         return String(encryptedBytes)
+    }
+
+    private fun signData(data: String): String {
+        val signature: Signature = Signature.getInstance(
+            props.dataSignatureAlgorithm,
+            props.dataSignatureProvider
+        )
+
+        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
+            props.dataSignatureKeystoreType!!,
+            props.dataSignatureKeystore!!,
+            props.dataSignatureKeystorePassword!!,
+            props.dataSignatureKeystoreKeyName!!,
+            props.dataSignatureKeystoreKeyPassword!!
+        )!!
+
+        signature.initSign(signingKey.private)
+
+        signature.update(data.toByteArray())
+        val sigBytes: ByteArray = signature.sign()
+
+        return Base64.getEncoder().encodeToString(sigBytes)
+    }
+
+    private fun verifySignature(data: String, signatureString: String): Boolean {
+        val signature: Signature = Signature.getInstance(
+            props.dataSignatureAlgorithm,
+            props.dataSignatureProvider
+        )
+
+        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
+            props.dataSignatureKeystoreType!!,
+            props.dataSignatureKeystore!!,
+            props.dataSignatureKeystorePassword!!,
+            props.dataSignatureKeystoreKeyName!!,
+            props.dataSignatureKeystoreKeyPassword!!
+        )!!
+
+        signature.initVerify(signingKey.public)
+        signature.update(data.toByteArray())
+
+        return signature.verify(Base64.getDecoder().decode(signatureString))
     }
 
     private fun buildJedisClusterClient(applicationProperties: ApplicationProperties): JedisCluster {
