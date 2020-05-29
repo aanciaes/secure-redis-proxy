@@ -12,7 +12,6 @@ import java.security.Signature
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -198,7 +197,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         return signature.verify(Base64.getDecoder().decode(signatureString))
     }
 
-    private fun computeIntegrityHash (test: String): String {
+    private fun computeIntegrityHash(test: String): String {
         val hMac = Mac.getInstance(props.dataHMacAlgorithm, props.dataHMacProvider)
 
         val integrityKey = KeystoreUtils.getKeyFromKeyStore(

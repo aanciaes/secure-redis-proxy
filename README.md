@@ -79,6 +79,15 @@ data.signature.keystore.path=keystores/keystore.jks
 data.signature.keystore.password=secretpassword
 data.signature.keystore.keyName=signaturekey
 data.signature.keystore.keyPassword=supersecretpassword
+
+# Data Integrity Configurations
+data.hmac.algorithm=HMacSHA256
+data.hmac.provider=SunJCE
+data.hmac.keystore.type=PKCS12
+data.hmac.keystore.path=keystores/keystore.p12
+data.hmac.keystore.password=secretpassword
+data.hmac.keystore.keyName=integritykey
+data.hmac.keystore.keyPassword=secretpassword
 ```
 
 `application.secure` - true if data stored in redis is completly encrypted using homomorphic ciphers.
