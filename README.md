@@ -129,8 +129,6 @@ List separated by commas in form of `host:port`.
 
 `data.signature.provider` - Signature provider for data signature.
 
-`data.signature.keystore` - Keystore where signature RSA key pair is stored.
-
 `data.signature.keystore.type` - Keystore type where signature RSA key pair is stored.
 
 `data.signature.keystore.path` - Keystore path where signature RSA key pair is stored.
@@ -140,6 +138,20 @@ List separated by commas in form of `host:port`.
 `data.signature.keystore.keyName` - Name of the key pair to sign data.
 
 `data.signature.keystore.keyPassword` - Password of the key pair to sign data.
+
+`data.hmac.algorithm` - HMac algorithm to verify data integrity.
+
+`data.hmac.provider` - Hmac provider for data integrity verification.
+
+`data.hmac.keystore.type` - Keystore type where Hmac sym key is stored.
+
+`data.hmac.keystore.path` - Keystore where Hmac sym key is stored.
+
+`data.hmac.keystore.password` - Keystore password where Hmac sym key is stored.
+
+`data.hmac.keystore.keyName` - Name of the key for hmac data integrity verification.
+
+`data.hmac.keystore.keyPassword` - Password of the key for hmac data integrity verification.
 
 ## Deploy a Local Redis Server
 
