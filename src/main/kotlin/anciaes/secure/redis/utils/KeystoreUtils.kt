@@ -1,6 +1,7 @@
 package anciaes.secure.redis.utils
 
 import java.io.FileInputStream
+import java.security.Key
 import java.security.KeyPair
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -23,6 +24,19 @@ object KeystoreUtils {
             val publicKey: PublicKey = cert.publicKey
             KeyPair(publicKey, privateKey)
         } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun getKeyFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): Key? {
+        return try {
+            val keyStore = KeyStore.getInstance(keyStoreType)
+            // Keystore where symmetric keys are stored (type JCEKS)
+            val stream = FileInputStream(keyStorePath)
+            keyStore.load(stream, keyStorePassword.toCharArray())
+            keyStore.getKey(keyName, keyPassword.toCharArray())
+        } catch (e: java.lang.Exception) {
             e.printStackTrace()
             null
         }
