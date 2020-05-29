@@ -1,5 +1,6 @@
 package anciaes.secure.redis.service
 
+import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
@@ -10,29 +11,26 @@ import redis.clients.jedis.params.SetParams
 import java.nio.charset.Charset
 import java.util.Base64
 import java.util.HashSet
-import java.util.Properties
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
-class SecureRedisClusterImpl(props: Properties) : RedisService {
+class SecureRedisClusterImpl(props: ApplicationProperties) : RedisService {
 
     private val jedis: JedisCluster = buildJedisClusterClient(props)
 
     // Homo Det Keys
-    private val homoDetSecret = props.getProperty("encryption.det.secret")
-    private val secretKey = HomoDet.keyFromString(homoDetSecret)
+    private val secretKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
 
     // Homo Ope Int Keys
-    val opeSecret = props.getProperty("encryption.ope.secret")
-    val ope = HomoOpeInt(opeSecret)
+    val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
 
     // Value Keys
-    private val valueProvider = props.getProperty("encryption.value.provider")
-    private val valueCipherSuite = props.getProperty("encryption.value.algorithm")
-    private val valueAlgorithm = valueCipherSuite.split("/")[0]
-    private val valueSecret = props.getProperty("encryption.value.secret")
-    private val valueKey = SecretKeySpec(valueSecret.toByteArray(Charset.defaultCharset()), valueAlgorithm)
+    private val dataEncryptionProvider = props.dataEncryptionProvider
+    private val dataEncryptionCipherSuite = props.dataEncryptionCipherSuite
+    private val valueAlgorithm = props.dataEncryptionCipherSuite!!.split("/")[0]
+    private val valueKey =
+        SecretKeySpec(props.dataEncryptionSecret!!.toByteArray(Charset.defaultCharset()), valueAlgorithm)
 
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
@@ -99,7 +97,7 @@ class SecureRedisClusterImpl(props: Properties) : RedisService {
     }
 
     private fun encryptValue(value: String): String {
-        val cipher: Cipher = Cipher.getInstance(valueCipherSuite, valueProvider)
+        val cipher: Cipher = Cipher.getInstance(dataEncryptionCipherSuite, dataEncryptionProvider)
         cipher.init(Cipher.ENCRYPT_MODE, valueKey)
 
         cipher.update(value.toByteArray(Charset.defaultCharset()))
@@ -108,7 +106,7 @@ class SecureRedisClusterImpl(props: Properties) : RedisService {
     }
 
     private fun decryptValue(cipherText: String): String {
-        val cipher: Cipher = Cipher.getInstance(valueCipherSuite, valueProvider)
+        val cipher: Cipher = Cipher.getInstance(dataEncryptionCipherSuite, dataEncryptionProvider)
         cipher.init(Cipher.DECRYPT_MODE, valueKey)
 
         cipher.update(Base64.getDecoder().decode(cipherText))
@@ -116,59 +114,51 @@ class SecureRedisClusterImpl(props: Properties) : RedisService {
         return String(encryptedBytes)
     }
 
-    private fun buildJedisClusterClient(props: Properties): JedisCluster {
-        val clusterNodes = props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() }
-            ?: throw RuntimeException("No cluster nodes provided")
-
+    private fun buildJedisClusterClient(applicationProperties: ApplicationProperties): JedisCluster {
         val jedisClusterNodes: MutableSet<HostAndPort> = HashSet()
-        clusterNodes.forEach {
+        applicationProperties.clusterContactNodes!!.forEach {
             jedisClusterNodes.add(HostAndPort.parseString(it))
         }
 
-        val username = props.getProperty("redis.auth.username")
-        val password = props.getProperty("redis.auth.password")
-
-        val tls = props.getProperty("redis.tls")?.toBoolean() ?: false
-        return if (tls) {
-            val clientKeyStore = props.getProperty("redis.tls.keystore.path")
-            val clientKeyStorePassword = props.getProperty("redis.tls.keystore.password")
-            val clientTrustStore = props.getProperty("redis.tls.truststore.path")
-            val clientTrustStorePassword = props.getProperty("redis.tls.truststore.password")
+        return if (applicationProperties.tlsEnabled) {
+            val clientKeyStore = applicationProperties.tlsKeystorePath
+            val clientKeyStorePassword = applicationProperties.tlsKeystorePassword
+            val clientTrustStore = applicationProperties.tlsTruststorePath
+            val clientTrustStorePassword = applicationProperties.tlsTruststorePassword
 
             if (clientKeyStore.isNullOrBlank() || clientKeyStorePassword.isNullOrBlank() || clientTrustStore.isNullOrBlank() || clientTrustStorePassword.isNullOrBlank()) {
                 throw RuntimeException("There are missing TLS configurations. Check application.conf file")
             }
-
-            val sslContext = SSLUtils.getSSLContext(
-                clientKeyStore,
-                clientKeyStorePassword,
-                clientTrustStore,
-                clientTrustStorePassword
-            )
 
             JedisCluster(
                 jedisClusterNodes,
                 2000,
                 2000,
                 5,
-                username,
-                password,
+                applicationProperties.redisUsername,
+                applicationProperties.redisPassword,
                 "redis-cluster",
                 GenericObjectPoolConfig<Any>(),
                 true,
-                sslContext,
+                SSLUtils.getSSLContext(
+                    clientKeyStore,
+                    clientKeyStorePassword,
+                    clientTrustStore,
+                    clientTrustStorePassword
+                ),
                 null,
                 null,
                 null
             )
+
         } else {
             JedisCluster(
                 jedisClusterNodes,
                 2000,
                 2000,
                 5,
-                username,
-                password,
+                applicationProperties.redisUsername,
+                applicationProperties.redisPassword,
                 "default",
                 GenericObjectPoolConfig<Any>(),
                 false

@@ -4,16 +4,14 @@ import anciaes.secure.redis.service.RedisClusterImpl
 import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
 import anciaes.secure.redis.service.SecureRedisServiceImpl
-import java.util.Properties
+import anciaes.secure.redis.utils.ConfigurationUtils
 import java.util.concurrent.TimeUnit
 
 fun main() {
-    val props = readPropertiesFile("/application.conf")
-    val redisService: RedisService = if (props.getProperty("application.secure")?.toBoolean() == true) {
+    val props = ConfigurationUtils.loadApplicationConfigurations("/application.conf")
+    val redisService: RedisService = if (props.secure) {
 
-        val isCluster = props.getProperty("redis.cluster")?.toBoolean() ?: false
-
-        if (isCluster) {
+        if (props.isCluster) {
             println("Initializing Secure Redis Cluster...")
             SecureRedisServiceImpl(props)
         } else {
@@ -21,9 +19,7 @@ fun main() {
             SecureRedisServiceImpl(props)
         }
     } else {
-        val isCluster = props.getProperty("redis.cluster")?.toBoolean() ?: false
-
-        if (isCluster) {
+        if (props.isCluster) {
             println("Initializing Non-Secure Redis Cluster...")
             RedisClusterImpl(props)
         } else {
@@ -120,12 +116,4 @@ fun printHelp() {
     println("\tflushall")
     println("\thelp")
     println("\texit")
-}
-
-fun readPropertiesFile(fileName: String): Properties {
-    val inputStream = object {}.javaClass.getResourceAsStream(fileName)
-    val props = Properties()
-    props.load(inputStream)
-
-    return props
 }
