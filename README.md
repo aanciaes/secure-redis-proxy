@@ -43,27 +43,42 @@ The available application configuration are explained below:
 ```
 application.secure=true
 
+# Redis Server Configurations
 redis.host=localhost
 redis.port=6379
 
-# redis.auth.username=default
-# redis.auth.password=redis
+# Redis Authentication Configurations
+redis.auth.username=
+redis.auth.password=
 
+# Redis TLS Configurations
 redis.tls=false
 redis.tls.keystore.path=/path/to/keystore
 redis.tls.keystore.password=keystore-password
 redis.tls.truststore.path=/path/to/truststore
 redis.tls.truststore.password=truststore-password
 
+# Redis Cluster Configurations
 redis.cluster=false
 redis.cluster.nodes=localhost:7001
 
+# Homomorphic Encryption Configurations
 key.encryption.det.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
 key.encryption.ope.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
 
+# Data Encryption Configurations
 data.encryption.algorithm=AES/ECB/PKCS5Padding
 data.encryption.provider=SunJCE
 data.encryption.secret=emrWoixAHOm0nDOEMvnTmcrKRhQvIIyT
+
+# Data Signature Configurations
+data.signature.algorithm=SHA512withRSA
+data.signature.provider=SunRsaSign
+data.signature.keystore.type=jks
+data.signature.keystore.path=keystores/keystore.jks
+data.signature.keystore.password=secretpassword
+data.signature.keystore.keyName=signaturekey
+data.signature.keystore.keyPassword=supersecretpassword
 ```
 
 `application.secure` - true if data stored in redis is completly encrypted using homomorphic ciphers.
@@ -100,6 +115,22 @@ List separated by commas in form of `host:port`.
 `data.encryption.provider` - Provider of the encryption cipher suite.
 
 `data.encryption.secret` - Secret of the encryption cipher suite.
+
+`data.signature.algorithm` - Signature algorithm to sign data.
+
+`data.signature.provider` - Signature provider for data signature.
+
+`data.signature.keystore` - Keystore where signature RSA key pair is stored.
+
+`data.signature.keystore.type` - Keystore type where signature RSA key pair is stored.
+
+`data.signature.keystore.path` - Keystore path where signature RSA key pair is stored.
+
+`data.signature.keystore.password` - Keystore password where signature RSA key pair is stored.
+
+`data.signature.keystore.keyName` - Name of the key pair to sign data.
+
+`data.signature.keystore.keyPassword` - Password of the key pair to sign data.
 
 ## Deploy a Local Redis Server
 
