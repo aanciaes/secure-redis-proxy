@@ -58,12 +58,12 @@ redis.tls.truststore.password=truststore-password
 redis.cluster=false
 redis.cluster.nodes=localhost:7001
 
-encryption.det.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
-encryption.ope.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
+key.encryption.det.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
+key.encryption.ope.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
 
-encryption.value.algorithm=AES/ECB/PKCS5Padding
-encryption.value.provider=SunJCE
-encryption.value.secret=emrWoixAHOm0nDOEMvnTmcrKRhQvIIyT
+data.encryption.algorithm=AES/ECB/PKCS5Padding
+data.encryption.provider=SunJCE
+data.encryption.secret=emrWoixAHOm0nDOEMvnTmcrKRhQvIIyT
 ```
 
 `application.secure` - true if data stored in redis is completly encrypted using homomorphic ciphers.
@@ -91,15 +91,15 @@ encryption.value.secret=emrWoixAHOm0nDOEMvnTmcrKRhQvIIyT
 `redis.cluster.nodes` - List of node contact points of Redis Cluster. Redis will automatically try to find all cluster nodes from one single contact point.
 List separated by commas in form of `host:port`.
 
-`encryption.det.secret` - Base64 secret key to encrypt the Redis keys in deterministic form.
+`key.encryption.det.secret` - Base64 secret key to encrypt the Redis keys in deterministic form.
 
-`encryption.ope.secret` - Base64 secret key to encrypt the Redis scores in a ordered form.
+`key.encryption.ope.secret` - Base64 secret key to encrypt the Redis scores in a ordered form.
 
-`encryption.value.algorithm` - Encryption cipher suite to encrypt Redis Values.
+`data.encryption.algorithm` - Encryption cipher suite to encrypt Redis Values.
 
-`encryption.value.provider` - Provider of the encryption cipher suite.
+`data.encryption.provider` - Provider of the encryption cipher suite.
 
-`encryption.value.secret` - Secret of the encryption cipher suite.
+`data.encryption.secret` - Secret of the encryption cipher suite.
 
 ## Deploy a Local Redis Server
 
