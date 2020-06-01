@@ -18,7 +18,7 @@ to the Redis server.
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
 2. Navigate to `src/main/resources/application.conf` and change the configuration at will.
 3. From project root run: `./gradlew clean build`
-4. From project root run: `./gradlew run`
+4. From project root run: `./gradlew bootRun` to run API mode or `./gradlew runCommandLine` to run command line mode.
 
 ## Run with Docker
 
