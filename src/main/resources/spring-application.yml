@@ -1,0 +1,15 @@
+# Spring Application Server Configurations
+spring:
+  application:
+    name: secure-redis-proxy
+
+  profiles:
+    active: dev
+
+---
+#Dev settings
+spring:
+  profiles: dev
+
+server:
+  port: 8080
