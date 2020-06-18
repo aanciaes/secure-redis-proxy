@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'org.example'
-version '1.0-SNAPSHOT'
+version '0.2'
 
 repositories {
     mavenCentral()
@@ -64,6 +64,10 @@ task runCommandLine(type: JavaExec) {
 }
 
 bootRun {
-    jvmArgs = ["-Dspring.config.location=/Users/miguelanciaes/Desktop/thesis/redis-homomorphic-enc/src/main/resources/spring-application.yml"]
+    jvmArgs = ["-Dspring.config.location=src/main/resources/spring-application.yml"]
     main = "anciaes.secure.redis.SpringBootInterfaceKt"
+}
+
+bootJar {
+    mainClassName = "anciaes.secure.redis.SpringBootInterfaceKt"
 }
