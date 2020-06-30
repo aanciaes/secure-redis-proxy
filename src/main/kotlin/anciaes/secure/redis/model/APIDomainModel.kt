@@ -6,3 +6,9 @@ data class SetCommand(
     val expiration: Long?,
     val expTimeUnit: String?
 )
+
+data class ZAddCommand(
+    val key: String,
+    val score: String,
+    val value: String
+)
