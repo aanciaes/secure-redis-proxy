@@ -5,7 +5,8 @@ import java.util.Properties
 
 object ConfigurationUtils {
 
-    fun loadApplicationConfigurations (configurationFile: String): ApplicationProperties {
+    fun loadApplicationConfigurations(): ApplicationProperties {
+        val configurationFile = "/application.conf"
         val props = readPropertiesFile(configurationFile)
 
         return ApplicationProperties(

@@ -9,7 +9,7 @@ import anciaes.secure.redis.utils.ConfigurationUtils
 import java.util.concurrent.TimeUnit
 
 fun main() {
-    val props = ConfigurationUtils.loadApplicationConfigurations("/application.conf")
+    val props = ConfigurationUtils.loadApplicationConfigurations()
     val redisService: RedisService = if (props.secure) {
 
         if (props.isCluster) {
