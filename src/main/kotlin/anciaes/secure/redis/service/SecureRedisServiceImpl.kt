@@ -1,5 +1,6 @@
 package anciaes.secure.redis.service
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.utils.KeystoreUtils
 import anciaes.secure.redis.utils.SSLUtils
@@ -14,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-
+/* ktlint-enable */
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
@@ -239,7 +240,6 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
                 null,
                 null
             )
-
         } else {
             Jedis(applicationProperties.redisHost, applicationProperties.redisPort)
         }

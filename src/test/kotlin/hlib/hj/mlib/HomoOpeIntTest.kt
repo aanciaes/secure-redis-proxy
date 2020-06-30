@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 class HomoOpeIntTest {
 
     @Test
-    fun `Test that encrypted values maintain order` () {
+    fun `Test that encrypted values maintain order`() {
         val ope = HomoOpeInt()
 
         val one = 1

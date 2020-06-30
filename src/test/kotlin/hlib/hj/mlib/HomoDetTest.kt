@@ -1,14 +1,16 @@
 package hlib.hj.mlib
 
+/* ktlint-disable */
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import javax.crypto.SecretKey
+/* ktlint-enable */
 
 class HomoDetTest {
 
     @Test
-    fun `Test that encryption and decryption works correctly` () {
+    fun `Test that encryption and decryption works correctly`() {
         val key: SecretKey = HomoDet.generateKey()
         val clearText = UUID.randomUUID().toString()
 
@@ -19,7 +21,7 @@ class HomoDetTest {
     }
 
     @Test
-    fun `Two encryptions with same key and same input, outputs same string` () {
+    fun `Two encryptions with same key and same input, outputs same string`() {
         val key: SecretKey = HomoDet.generateKey()
         val clearText = UUID.randomUUID().toString()
 

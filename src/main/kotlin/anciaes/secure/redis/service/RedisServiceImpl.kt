@@ -1,10 +1,12 @@
 package anciaes.secure.redis.service
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.utils.SSLUtils
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
 import java.util.concurrent.TimeUnit
+/* ktlint-enable */
 
 class RedisServiceImpl(props: ApplicationProperties) : RedisService {
 
@@ -98,7 +100,6 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
                 null,
                 null
             )
-
         } else {
             Jedis(applicationProperties.redisHost, applicationProperties.redisPort)
         }

@@ -1,5 +1,6 @@
 package anciaes.secure.redis.controller
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.SetCommand
 import anciaes.secure.redis.model.ZAddCommand
 import anciaes.secure.redis.service.RedisService
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.util.concurrent.TimeUnit
+/* ktlint-enable */
 
 @RestController
 @RequestMapping(path = ["/redis"])

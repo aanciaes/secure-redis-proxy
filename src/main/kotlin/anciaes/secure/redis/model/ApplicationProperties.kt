@@ -1,6 +1,6 @@
 package anciaes.secure.redis.model
 
-data class ApplicationProperties (
+data class ApplicationProperties(
     val secure: Boolean,
 
     val redisHost: String,

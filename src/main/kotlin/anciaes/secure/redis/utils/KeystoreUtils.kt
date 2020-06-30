@@ -8,7 +8,6 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.cert.Certificate
 
-
 object KeystoreUtils {
 
     fun getKeyPairFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): KeyPair? {

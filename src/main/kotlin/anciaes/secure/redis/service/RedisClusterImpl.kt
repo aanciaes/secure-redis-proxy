@@ -1,5 +1,6 @@
 package anciaes.secure.redis.service
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.utils.SSLUtils
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
@@ -8,6 +9,7 @@ import redis.clients.jedis.JedisCluster
 import redis.clients.jedis.params.SetParams
 import java.util.HashSet
 import java.util.concurrent.TimeUnit
+/* ktlint-enable */
 
 class RedisClusterImpl(props: ApplicationProperties) : RedisService {
 
@@ -97,7 +99,6 @@ class RedisClusterImpl(props: ApplicationProperties) : RedisService {
                 null,
                 null
             )
-
         } else {
             JedisCluster(
                 jedisClusterNodes,
