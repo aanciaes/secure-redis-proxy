@@ -18,10 +18,10 @@ object ConfigurationUtils {
             props.getProperty("redis.auth.password"),
 
             props.getProperty("redis.tls")?.toBoolean() ?: false,
-            props.getProperty("redis.keystore.path"),
-            props.getProperty("redis.keystore.password"),
-            props.getProperty("redis.truststore.path"),
-            props.getProperty("redis.truststore.password"),
+            props.getProperty("redis.tls.keystore.path"),
+            props.getProperty("redis.tls.keystore.password"),
+            props.getProperty("redis.tls.truststore.path"),
+            props.getProperty("redis.tls.truststore.password"),
 
             props.getProperty("redis.cluster")?.toBoolean() ?: false,
             props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() },
