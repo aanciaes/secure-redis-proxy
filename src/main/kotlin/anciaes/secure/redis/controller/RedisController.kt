@@ -26,7 +26,7 @@ class RedisController {
     @RequestMapping(method = [RequestMethod.GET], path = ["/{key}"])
     fun get(@PathVariable key: String) = redisService.get(key)
 
-    @RequestMapping(method = [RequestMethod.POST], path = ["/"])
+    @RequestMapping(method = [RequestMethod.POST], path = ["", "/"])
     fun set(@RequestBody setCommand: SetCommand): String {
         val timeUnit = when (setCommand.expTimeUnit?.toLowerCase()) {
             "ms" -> TimeUnit.MILLISECONDS

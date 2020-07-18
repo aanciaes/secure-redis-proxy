@@ -10,6 +10,8 @@ spring:
 #Dev settings
 spring:
   profiles: dev
+  main:
+    allow-bean-definition-overriding: true
 
 server:
   port: 8443
@@ -21,3 +23,16 @@ server:
 
 security:
   require-ssl: true
+
+keycloak:
+  realm: master
+  auth-server-url: http://localhost:8888/auth
+  resource: test-backend
+  principal-attribute: preferred_username
+  bearer-only: true
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
