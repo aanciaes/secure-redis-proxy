@@ -25,14 +25,14 @@ security:
   require-ssl: true
 
 keycloak:
-  realm: master
+  realm: thesis-realm
   auth-server-url: http://localhost:8888/auth
-  resource: test-backend
+  resource: thesis-redis-backend
   principal-attribute: preferred_username
   bearer-only: true
 
-logging:
-  level:
-    org:
-      springframework:
-        security: DEBUG
+#logging:
+#  level:
+#    org:
+#      springframework:
+#        security: DEBUG

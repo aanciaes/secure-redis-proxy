@@ -55,9 +55,9 @@ internal class SecurityConfig : KeycloakWebSecurityConfigurerAdapter() {
         super.configure(http)
         http.csrf().disable()
             .authorizeRequests()
-            .antMatchers(HttpMethod.GET, "/redis/*", "/redis/zadd/*").hasAnyAuthority("user", "administrator")
-            .antMatchers(HttpMethod.POST, "/redis", "/redis/", "/redis/zadd").hasAuthority("administrator")
-            .antMatchers(HttpMethod.DELETE, "/", "/*").hasRole("administrator")
+            .antMatchers(HttpMethod.GET, "/redis/*", "/redis/zadd/*").hasAnyAuthority("BasicUser", "Administrator")
+            .antMatchers(HttpMethod.POST, "/redis", "/redis/", "/redis/zadd").hasAuthority("Administrator")
+            .antMatchers(HttpMethod.DELETE, "/", "/*").hasRole("Administrator")
             .anyRequest().denyAll()
     }
 }
