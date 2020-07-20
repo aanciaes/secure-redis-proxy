@@ -163,6 +163,18 @@ from the project root the command `docker run -d -p 6379:6379 -v $PWD/redis.conf
 To quickly deploy a Keycloak server using Docker use the [sso-deploy.sh](sso-deploy.sh), `./sso-deploy.sh`.
 It deploys a keycloak server with an administrator user `miguel:miguel` and a basic user `joao:joao`.
 
+## Login and Retrieve Access Token from SSO
+
+To login, use the request below. Change the server name and the user and password.
+```
+curl -X POST \
+  https://sso-example.com/auth/realms/thesis-realm/protocol/openid-connect/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'grant_type=password&username=user&password=pass&client_id=thesis-redis-client'
+```
+
+An access token will be returned, that should be stored and used on the authorization header for request to the proxy API.
+
 ## Enhancements and Bugs
 
 Check github issues [here](https://github.com/aanciaes/redis-homomorphic-enc/issues).
