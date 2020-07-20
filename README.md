@@ -1,8 +1,8 @@
 # Redis Secure Client - Homomorphic Encryption
 
 ![build and test](https://github.com/aanciaes/redis-homomorphic-enc/workflows/Build%20and%20Test/badge.svg)
-[![GitHub release](https://img.shields.io/github/release/Naereen/StrapDown.js.svg)](https://github.com/aanciaes/secure-redis-proxy/releases/)
-[![GitHub issues](https://img.shields.io/github/issues/Naereen/StrapDown.js.svg)](https://github.com/aanciaes/secure-redis-proxy/issues/)
+[![GitHub release](https://img.shields.io/github/release/aanciaes/secure-redis-proxy.svg)](https://github.com/aanciaes/secure-redis-proxy/releases/)
+[![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-proxy.svg)](https://github.com/aanciaes/secure-redis-proxy/issues/)
 
 This project is an example of a client interacting with a non-secure Redis server.
 To maintain the data secure, it encrypts all data before communicating with the Redis server, therefor, all data stored 
