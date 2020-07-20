@@ -67,7 +67,11 @@ key.encryption.ope.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0
 # Data Encryption Configurations
 data.encryption.algorithm=AES/ECB/PKCS5Padding
 data.encryption.provider=SunJCE
-data.encryption.secret=emrWoixAHOm0nDOEMvnTmcrKRhQvIIyT
+data.encryption.keystore.type=jks
+data.encryption.keystore.path=keystores/keystore.jks
+data.encryption.keystore.password=secretpassword
+data.encryption.keystore.keyName=encryptionkey
+data.encryption.keystore.keyPassword=secretpassword
 
 # Data Signature Configurations
 data.signature.algorithm=SHA512withRSA
@@ -115,13 +119,21 @@ List separated by commas in form of `host:port`.
 
 `key.encryption.det.secret` - Base64 secret key to encrypt the Redis keys in deterministic form.
 
-`key.encryption.ope.secret` - Base64 secret key to encrypt the Redis scores in a ordered form.
+`key.encryption.ope.secret` - Base64 secret key to encrypt the Redis scores in an ordered form.
 
 `data.encryption.algorithm` - Encryption cipher suite to encrypt Redis Values.
 
 `data.encryption.provider` - Provider of the encryption cipher suite.
 
-`data.encryption.secret` - Secret of the encryption cipher suite.
+`data.encryption.keystore.type` - Keystore type where encryption AES key is stored.
+
+`data.encryption.keystore.path` - Keystore path where encryption AES key is stored.
+
+`data.encryption.keystore.password` - Keystore password where encryption AES key is stored.
+
+`data.encryption.keystore.keyName` - Name of the key to encrypt data.
+
+`data.encryption.keystore.keyPassword` - Password of the key to encrypt data.
 
 `data.signature.algorithm` - Signature algorithm to sign data.
 
