@@ -15,35 +15,26 @@ to the Redis server.
 
 ## How to Run
 
+### Api Mode
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
-2. Navigate to `src/main/resources/application.conf` and change the configuration at will.
-3. From project root run: `./gradlew clean build`
-4. From project root run: `./gradlew bootRun` to run API mode or `./gradlew runCommandLine` to run command line mode.
+2. Make sure to have a Keycloak server running (SSO). To deploy a local SSO Server check out the [Deploy a Local Keycloak Server](#deploy-a-local-keycloak-server) bellow.
+3. Navigate to `src/main/resources/application.conf` and change the configuration at will.
+4. From project root run: `./gradlew clean build`
+5. From project root run: `./gradlew bootRun` to run API mode or `./gradlew runCommandLine` to run command line mode.
+6. Login to SSO and save the Access Token.
+7. Use API with the access token.
 
-## Run with Docker
+### Api Mode with Docker
 
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
-2. Navigate to `src/main/resources/application.conf` and change the configuration at will.
-3. From project root run: `docker build -t redis-proxy:dev .`
-4. From project root run: `docker run -i -t redis-proxy:dev`
+3. Make sure to have a Keycloak server running (SSO). To deploy a local SSO Server check out the [Deploy a Local Keycloak Server](#deploy-a-local-keycloak-server) bellow.
+4. Navigate to `src/main/resources/application.conf` and change the configuration at will.
+5. From project root run: `docker build -t redis-proxy:dev .`
+6. From project root run: `docker run -i -t redis-proxy:dev`
+6. Login to SSO and save the Access Token.
+7. Use API with the access token.
 
-### Available Operations
-
-```
-Usage: $ command [options]
-
-List of available commands:
-    set <key> <value> [expiration [ms|s]]
-    get <key>
-    del <key>
-    zadd <key> <score> <value>
-    zrange <key> <min> <max>
-    flushall
-    help
-    exit
-```
-
-### Application Configurations
+## Application Configurations
 
 The available application configuration are explained below:
 
@@ -166,6 +157,11 @@ To quickly deploy a Redis server using Docker use `docker run -d -p 6379:6379 re
 
 To deploy a Redis server with a custom configuration file, modify the config file provided [here](redis.conf) and run
 from the project root the command `docker run -d -p 6379:6379 -v $PWD/redis.conf:/usr/local/etc/redis/redis.conf redis:6.0.3 redis-server /usr/local/etc/redis/redis.conf`
+
+## Deploy a Local Keycloak Server
+
+To quickly deploy a Keycloak server using Docker use the [sso-deploy.sh](sso-deploy.sh), `./sso-deploy.sh`.
+It deploys a keycloak server with an administrator user `miguel:miguel` and a basic user `joao:joao`.
 
 ## Enhancements and Bugs
 
