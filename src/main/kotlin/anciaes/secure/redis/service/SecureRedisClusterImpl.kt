@@ -30,10 +30,28 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
     // Homo Ope Int Keys
     val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
 
-    // Value Keys
-    private val valueAlgorithm = props.dataEncryptionCipherSuite!!.split("/")[0]
-    private val valueKey =
-        SecretKeySpec(props.dataEncryptionSecret!!.toByteArray(Charset.defaultCharset()), valueAlgorithm)
+    // Load KeySpecs
+    private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(
+        props.dataEncryptionKeystoreType!!,
+        props.dataEncryptionKeystore!!,
+        props.dataEncryptionKeystorePassword!!,
+        props.dataEncryptionKeystoreKeyName!!,
+        props.dataEncryptionKeystoreKeyPassword!!
+    )!!
+    private val integrityKey = KeystoreUtils.getKeyFromKeyStore(
+        props.dataHMacKeystoreType!!,
+        props.dataHMacKeystore!!,
+        props.dataHMacKeystorePassword!!,
+        props.dataHMacKeyName!!,
+        props.dataHMacKeyPassword!!
+    )!!
+    private val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
+        props.dataSignatureKeystoreType!!,
+        props.dataSignatureKeystore!!,
+        props.dataSignatureKeystorePassword!!,
+        props.dataSignatureKeystoreKeyName!!,
+        props.dataSignatureKeystoreKeyPassword!!
+    )!!
 
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
@@ -126,7 +144,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private fun encryptValue(value: String): String {
         val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
-        cipher.init(Cipher.ENCRYPT_MODE, valueKey)
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
 
         cipher.update(value.toByteArray(Charset.defaultCharset()))
         val encryptedBytes = cipher.doFinal()
@@ -135,7 +153,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private fun decryptValue(cipherText: String): String {
         val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
-        cipher.init(Cipher.DECRYPT_MODE, valueKey)
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
 
         cipher.update(Base64.getDecoder().decode(cipherText))
         val encryptedBytes = cipher.doFinal()
@@ -147,14 +165,6 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
             props.dataSignatureAlgorithm,
             props.dataSignatureProvider
         )
-
-        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
-            props.dataSignatureKeystoreType!!,
-            props.dataSignatureKeystore!!,
-            props.dataSignatureKeystorePassword!!,
-            props.dataSignatureKeystoreKeyName!!,
-            props.dataSignatureKeystoreKeyPassword!!
-        )!!
 
         signature.initSign(signingKey.private)
 
@@ -170,14 +180,6 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
             props.dataSignatureProvider
         )
 
-        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
-            props.dataSignatureKeystoreType!!,
-            props.dataSignatureKeystore!!,
-            props.dataSignatureKeystorePassword!!,
-            props.dataSignatureKeystoreKeyName!!,
-            props.dataSignatureKeystoreKeyPassword!!
-        )!!
-
         signature.initVerify(signingKey.public)
         signature.update(data.toByteArray())
 
@@ -186,14 +188,6 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private fun computeIntegrityHash(test: String): String {
         val hMac = Mac.getInstance(props.dataHMacAlgorithm, props.dataHMacProvider)
-
-        val integrityKey = KeystoreUtils.getKeyFromKeyStore(
-            props.dataHMacKeystoreType!!,
-            props.dataHMacKeystore!!,
-            props.dataHMacKeystorePassword!!,
-            props.dataHMacKeyName!!,
-            props.dataHMacKeyPassword!!
-        )!!
 
         hMac.init(integrityKey)
         hMac.update(test.toByteArray())

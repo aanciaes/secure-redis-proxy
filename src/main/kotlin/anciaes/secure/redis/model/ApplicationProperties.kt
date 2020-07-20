@@ -23,7 +23,11 @@ data class ApplicationProperties(
 
     val dataEncryptionCipherSuite: String?,
     val dataEncryptionProvider: String?,
-    val dataEncryptionSecret: String?,
+    val dataEncryptionKeystoreType: String?,
+    val dataEncryptionKeystore: String?,
+    val dataEncryptionKeystorePassword: String?,
+    val dataEncryptionKeystoreKeyName: String?,
+    val dataEncryptionKeystoreKeyPassword: String?,
 
     val dataSignatureAlgorithm: String?,
     val dataSignatureProvider: String?,

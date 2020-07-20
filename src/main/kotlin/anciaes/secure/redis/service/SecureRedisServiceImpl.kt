@@ -6,6 +6,7 @@ import anciaes.secure.redis.utils.KeystoreUtils
 import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
+import org.bouncycastle.util.encoders.Hex
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
 import java.nio.charset.Charset
@@ -22,15 +23,33 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     private val jedis: Jedis = buildJedisClient(props)
 
     // Homo Det Keys
-    private val secretKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
+    private val homoDetKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
 
     // Homo Ope Int Keys
-    val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
+    val homoOpeKey = HomoOpeInt(props.keyEncryptionOpeSecret)
 
-    // Value Keys
-    private val valueAlgorithm = props.dataEncryptionCipherSuite!!.split("/")[0]
-    private val valueKey =
-        SecretKeySpec(props.dataEncryptionSecret!!.toByteArray(Charset.defaultCharset()), valueAlgorithm)
+    // Load KeySpecs
+    private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(
+        props.dataEncryptionKeystoreType!!,
+        props.dataEncryptionKeystore!!,
+        props.dataEncryptionKeystorePassword!!,
+        props.dataEncryptionKeystoreKeyName!!,
+        props.dataEncryptionKeystoreKeyPassword!!
+    )!!
+    private val integrityKey = KeystoreUtils.getKeyFromKeyStore(
+        props.dataHMacKeystoreType!!,
+        props.dataHMacKeystore!!,
+        props.dataHMacKeystorePassword!!,
+        props.dataHMacKeyName!!,
+        props.dataHMacKeyPassword!!
+    )!!
+    private val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
+        props.dataSignatureKeystoreType!!,
+        props.dataSignatureKeystore!!,
+        props.dataSignatureKeystorePassword!!,
+        props.dataSignatureKeystoreKeyName!!,
+        props.dataSignatureKeystoreKeyPassword!!
+    )!!
 
     init {
         val username = props.redisUsername
@@ -49,7 +68,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     }
 
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
-        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         val secureValue = computeSecureValue(value)
 
         return if (expiration != null) {
@@ -66,7 +85,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     }
 
     override fun get(key: String): String {
-        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         return when (val value = jedis.get(encryptedKey)) {
             null -> "(nil)"
             else -> getSecureValue(value)
@@ -74,15 +93,15 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     }
 
     override fun del(key: String): String {
-        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         return if (jedis.del(encryptedKey) == 1L) "OK" else "NOK"
     }
 
     override fun zadd(key: String, score: String, value: String): String {
-        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         val encryptedScoreDouble = try {
             val scoreInt = score.toInt()
-            ope.encrypt(scoreInt).toDouble()
+            homoOpeKey.encrypt(scoreInt).toDouble()
         } catch (e: NumberFormatException) {
             return "NOK - Score must be a number"
         }
@@ -92,14 +111,14 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<String> {
-        val encryptedKey = HomoDet.encrypt(secretKey, key)
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         var encryptedMin = "-inf"
         var encryptedMax = "+inf"
 
         try {
             if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
-                encryptedMin = ope.encrypt(min.toInt()).toString()
-                encryptedMax = ope.encrypt(max.toInt()).toString()
+                encryptedMin = homoOpeKey.encrypt(min.toInt()).toString()
+                encryptedMax = homoOpeKey.encrypt(max.toInt()).toString()
             }
         } catch (e: NumberFormatException) {
             return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
@@ -139,18 +158,20 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
     private fun encryptValue(value: String): String {
         val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
-        cipher.init(Cipher.ENCRYPT_MODE, valueKey)
 
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
         cipher.update(value.toByteArray(Charset.defaultCharset()))
+
         val encryptedBytes = cipher.doFinal()
         return Base64.getEncoder().encodeToString(encryptedBytes)
     }
 
     private fun decryptValue(cipherText: String): String {
         val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
-        cipher.init(Cipher.DECRYPT_MODE, valueKey)
 
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
         cipher.update(Base64.getDecoder().decode(cipherText))
+
         val encryptedBytes = cipher.doFinal()
         return String(encryptedBytes)
     }
@@ -160,14 +181,6 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             props.dataSignatureAlgorithm,
             props.dataSignatureProvider
         )
-
-        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
-            props.dataSignatureKeystoreType!!,
-            props.dataSignatureKeystore!!,
-            props.dataSignatureKeystorePassword!!,
-            props.dataSignatureKeystoreKeyName!!,
-            props.dataSignatureKeystoreKeyPassword!!
-        )!!
 
         signature.initSign(signingKey.private)
 
@@ -183,14 +196,6 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             props.dataSignatureProvider
         )
 
-        val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
-            props.dataSignatureKeystoreType!!,
-            props.dataSignatureKeystore!!,
-            props.dataSignatureKeystorePassword!!,
-            props.dataSignatureKeystoreKeyName!!,
-            props.dataSignatureKeystoreKeyPassword!!
-        )!!
-
         signature.initVerify(signingKey.public)
 
         signature.update(data.toByteArray())
@@ -200,14 +205,6 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
     private fun computeIntegrityHash(test: String): String {
         val hMac = Mac.getInstance(props.dataHMacAlgorithm, props.dataHMacProvider)
-
-        val integrityKey = KeystoreUtils.getKeyFromKeyStore(
-            props.dataHMacKeystoreType!!,
-            props.dataHMacKeystore!!,
-            props.dataHMacKeystorePassword!!,
-            props.dataHMacKeyName!!,
-            props.dataHMacKeyPassword!!
-        )!!
 
         hMac.init(integrityKey)
         hMac.update(test.toByteArray())

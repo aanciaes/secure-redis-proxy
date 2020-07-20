@@ -31,7 +31,11 @@ object ConfigurationUtils {
 
             props.getProperty("data.encryption.ciphersuite"),
             props.getProperty("data.encryption.provider"),
-            props.getProperty("data.encryption.secret"),
+            props.getProperty("data.encryption.keystore.type"),
+            props.getProperty("data.encryption.keystore.path"),
+            props.getProperty("data.encryption.keystore.password"),
+            props.getProperty("data.encryption.keystore.keyName"),
+            props.getProperty("data.encryption.keystore.keyPassword"),
 
             props.getProperty("data.signature.algorithm"),
             props.getProperty("data.signature.provider"),
