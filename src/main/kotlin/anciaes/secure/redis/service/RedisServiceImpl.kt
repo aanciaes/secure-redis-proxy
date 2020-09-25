@@ -13,15 +13,18 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
     private val jedis: Jedis = buildJedisClient(props)
 
     init {
+        val redisAuth = props.redisAuthentication
         val username = props.redisUsername
         val password = props.redisPassword
 
-        if (!password.isNullOrBlank()) {
-            // Backwards compatibility. For older Redis versions that do not support ACL
-            if (username.isNullOrBlank()) {
-                jedis.auth(password)
-            } else {
-                jedis.auth(username, password)
+        if (redisAuth) {
+            if (!password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    jedis.auth(password)
+                } else {
+                    jedis.auth(username, password)
+                }
             }
         }
 

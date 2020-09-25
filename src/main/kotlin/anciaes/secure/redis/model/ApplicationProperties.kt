@@ -6,6 +6,7 @@ data class ApplicationProperties(
     val redisHost: String,
     val redisPort: Int,
 
+    val redisAuthentication: Boolean,
     val redisUsername: String?,
     val redisPassword: String?,
 

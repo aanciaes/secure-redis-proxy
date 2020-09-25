@@ -52,8 +52,9 @@ redis.host=localhost
 redis.port=6379
 
 # Redis Authentication Configurations
-redis.auth.username=
-redis.auth.password=
+redis.auth=trure
+redis.auth.username=default
+redis.auth.password=redis
 
 # Redis TLS Configurations
 redis.tls=false
@@ -104,9 +105,11 @@ data.hmac.keystore.keyPassword=secretpassword
 
 `redis.port` - Redis Port
 
-`redis.auth.username` - Redis username. Leave blank or commented if no username exists or auth is disabled.
+`redis.auth` - True if redis authentication is enabled.
 
-`redis.auth.password` - Redis password. Leave blank if auth is disabled.
+`redis.auth.username` - Redis username. Leave blank or commented if no username exists.
+
+`redis.auth.password` - Redis password.
 
 `redis.tls` - true if Redis TLS communication is enabled.
 

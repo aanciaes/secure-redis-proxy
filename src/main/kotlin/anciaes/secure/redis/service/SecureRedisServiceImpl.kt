@@ -16,6 +16,7 @@ import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
+
 /* ktlint-enable */
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
@@ -52,15 +53,18 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     )!!
 
     init {
+        val redisAuth = props.redisAuthentication
         val username = props.redisUsername
         val password = props.redisPassword
 
-        if (!password.isNullOrBlank()) {
-            // Backwards compatibility. For older Redis versions that do not support ACL
-            if (username.isNullOrBlank()) {
-                jedis.auth(password)
-            } else {
-                jedis.auth(username, password)
+        if (redisAuth) {
+            if (!password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    jedis.auth(password)
+                } else {
+                    jedis.auth(username, password)
+                }
             }
         }
 

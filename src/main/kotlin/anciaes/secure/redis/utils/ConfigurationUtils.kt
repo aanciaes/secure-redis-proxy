@@ -14,6 +14,7 @@ object ConfigurationUtils {
             props.getProperty("redis.host") ?: "localhost",
             props.getProperty("redis.port")?.toInt() ?: 6379,
 
+            props.getProperty("redis.auth")?.toBoolean() ?: false,
             props.getProperty("redis.auth.username"),
             props.getProperty("redis.auth.password"),
 
