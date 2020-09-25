@@ -31,10 +31,14 @@ to the Redis server.
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
 3. Make sure to have a Keycloak server running (SSO). To deploy a local SSO Server check out the [Deploy a Local Keycloak Server](#deploy-a-local-keycloak-server) bellow.
 4. Navigate to `src/main/resources/application.conf` and change the configuration at will.
-5. From project root run: `docker build -t redis-proxy:dev .`
-6. From project root run: `docker run -i -t redis-proxy:dev`
+5. From project root run: `docker build -t secure-redis-proxy:dev .`
+6. From project root run: `docker run -i -t -p 8443:8443 secure-redis-proxy:dev`
 6. Login to SSO and save the Access Token.
 7. Use API with the access token.
+
+## Run in Production Environment
+
+TBD
 
 ## Application Configurations
 
