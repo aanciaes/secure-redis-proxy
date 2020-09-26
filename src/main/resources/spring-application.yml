@@ -39,11 +39,11 @@ spring:
     allow-bean-definition-overriding: true
 
 server:
-  port: 8443
+  port: 8777
   ssl:
     key-store-type: PKCS12
-    key-store: production-keystores/redis-proxy-api.p12
-    key-store-password: redis-proxy-api
+    key-store: production-keystores/proxy-api.p12
+    key-store-password: wLgz8_tChXhhH-UwezGLL38wr
     key-alias: redis-proxy-api
 
 security:

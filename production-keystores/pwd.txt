@@ -1,0 +1,8 @@
+proxy-api.p12: wLgz8_tChXhhH-UwezGLL38wr
+proxy-redis-client: x4nRG*7VJAFjDcixhtJxZ9Q*s
+proxy-redis-truststore: qTn-Mo@j46f9ddNbHjwtxA3y.
+application-enc-keys.p12:
+    store pwd: secretpassword
+    encryptionkey: secretpassword
+    signaturekey: secretpassword
+    integritykey: secretpassword
