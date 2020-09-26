@@ -3,10 +3,21 @@ package anciaes.secure.redis.utils
 import anciaes.secure.redis.model.ApplicationProperties
 import java.util.Properties
 
+private const val dev = "dev"
+private const val prod = "prod"
+
 object ConfigurationUtils {
 
     fun loadApplicationConfigurations(): ApplicationProperties {
-        val configurationFile = "/application.conf"
+        var configurationFile = ""
+        val profile = System.getenv("spring-profile") ?: "dev"
+
+        configurationFile = if (profile == prod) {
+            "/prod-application.conf"
+        } else {
+            "/application.conf"
+        }
+
         val props = readPropertiesFile(configurationFile)
 
         return ApplicationProperties(

@@ -31,8 +31,27 @@ keycloak:
   principal-attribute: preferred_username
   bearer-only: true
 
-#logging:
-#  level:
-#    org:
-#      springframework:
-#        security: DEBUG
+---
+#Dev settings
+spring:
+  profiles: prod
+  main:
+    allow-bean-definition-overriding: true
+
+server:
+  port: 8443
+  ssl:
+    key-store-type: PKCS12
+    key-store: production-keystores/redis-proxy-api.p12
+    key-store-password: redis-proxy-api
+    key-alias: redis-proxy-api
+
+security:
+  require-ssl: true
+
+keycloak:
+  realm: thesis-realm
+  auth-server-url: http://localhost:8888/auth
+  resource: thesis-redis-backend
+  principal-attribute: preferred_username
+  bearer-only: true
