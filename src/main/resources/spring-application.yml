@@ -32,7 +32,7 @@ keycloak:
   bearer-only: true
 
 ---
-#Dev settings
+#Production settings
 spring:
   profiles: prod
   main:
