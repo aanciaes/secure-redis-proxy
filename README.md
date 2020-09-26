@@ -36,9 +36,34 @@ to the Redis server.
 6. Login to SSO and save the Access Token.
 7. Use API with the access token.
 
-## Run in Production Environment
+## Run in Production
 
-TBD
+To build the production image:
+
+1. `docker build -f prod.Dockerfile -t secure-redis-proxy:prod .`
+2. To test on local machine run: `docker run --rm --name secure-redis-proxy -it -p 8443:8443 secure-redis-proxy:prod`
+
+### Push to docker hub
+
+1. Login to docker hub
+2. Build image with version as tag:
+3. `docker build -f prod.Dockerfile -t aanciaes/secure-redis-proxy:0.1.1 .`
+4. `docker push aanciaes/secure-redis-proxy:0.1.1`
+
+If image is ready for production, build the prod tag and push:
+
+1. `docker build -f prod.Dockerfile -t aanciaes/secure-redis-proxy:prod`
+2. `docker push aanciaes/secure-redis-proxy:prod`
+
+### Running on Production Environment
+
+1. Login to docker
+2. `docker run --rm --name secure-redis-proxy -it -d -p 8443:8443 --device=/dev/isgx -e SCONE_MODE=HW aanciaes/secure-redis-proxy:prod`
+
+**Notes:**
+
+1. The deployment on the cloud provider should be done by uploading the production image to the docker hub registry and pull from there to avoid any losses.
+2. Be aware of the redis ports with the docker run command as they may change in the `redis.conf`
 
 ## Application Configurations
 
