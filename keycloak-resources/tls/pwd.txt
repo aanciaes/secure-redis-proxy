@@ -1,0 +1,1 @@
+keycloak-tls.p12 = FXjnQn8FNwjRr2d.z3jdxC3zE

@@ -65,6 +65,11 @@ If image is ready for production, build the prod tag and push:
 1. The deployment on the cloud provider should be done by uploading the production image to the docker hub registry and pull from there to avoid any losses.
 2. Be aware of the redis ports with the docker run command as they may change in the `spring-application.yml` configuration file.
 
+### Deploy Authentication Server to Production
+
+1. Login to docker
+2. `docker run --rm --name secure-redis-sso -it -d -p 8678:8443 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=mq@cbGfvM@bT3P_Q.zFcACfMT aanciaes/thesis-auth-server:prod`
+
 ## Application Configurations
 
 The available application configuration are explained below:

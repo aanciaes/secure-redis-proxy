@@ -51,7 +51,9 @@ security:
 
 keycloak:
   realm: thesis-realm
-  auth-server-url: http://localhost:8888/auth
+  auth-server-url: https://ns31249243.ip-51-210-0.eu:8678/auth
   resource: thesis-redis-backend
   principal-attribute: preferred_username
   bearer-only: true
+  trust-store: production-keystores/proxy-api-truststore.p12
+  truststore-password: qTn-Mo@j46f9ddNbHjwtxA3y.
