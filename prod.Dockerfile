@@ -24,5 +24,8 @@ COPY --from=builder /home/gradle/project/src/main/resources/spring-application.y
 
 COPY ./keystores/ ./keystores
 
+# Set production profile
+ENV spring-profile prod
+
 # Run jar
 CMD SCONE_VERSION=1 java -jar -Dspring.config.location=spring-application.yml ./secure-redis-proxy-0.2.jar
