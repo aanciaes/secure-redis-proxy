@@ -58,7 +58,7 @@ If image is ready for production, build the prod tag and push:
 ### Running on Production Environment
 
 1. Login to docker
-2. `docker run --rm --name secure-redis-proxy -it -d -p 8443:8443 --device=/dev/isgx -e SCONE_MODE=HW aanciaes/secure-redis-proxy:prod`
+2. `docker run --rm --name secure-redis-proxy -it -d -p 8777:8777 --device=/dev/isgx -e SCONE_MODE=HW aanciaes/secure-redis-proxy:prod`
 
 **Notes:**
 
