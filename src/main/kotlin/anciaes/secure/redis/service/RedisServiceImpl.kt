@@ -2,10 +2,13 @@ package anciaes.secure.redis.service
 
 /* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
+import anciaes.secure.redis.model.RedisResponses
+import anciaes.secure.redis.model.ZRangeTuple
 import anciaes.secure.redis.utils.SSLUtils
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
 import java.util.concurrent.TimeUnit
+
 /* ktlint-enable */
 
 class RedisServiceImpl(props: ApplicationProperties) : RedisService {
@@ -46,33 +49,20 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
     }
 
     override fun get(key: String): String {
-        return jedis.get(key) ?: "(nil)"
+        return jedis.get(key) ?: RedisResponses.NIL
     }
 
     override fun del(key: String): String {
-        return if (jedis.del(key) == 1L) "OK" else "NOK"
+        return if (jedis.del(key) == 1L) RedisResponses.OK else RedisResponses.NOK
     }
 
-    override fun zadd(key: String, score: String, value: String): String {
-        val scoreDouble = try {
-            score.toDouble()
-        } catch (e: NumberFormatException) {
-            return "NOK - Score must be a number"
-        }
-        return if (jedis.zadd(key, scoreDouble, value) == 1L) "OK" else "NOK"
+    override fun zadd(key: String, score: Double, value: String): String {
+        return if (jedis.zadd(key, score, value) == 1L) RedisResponses.OK else RedisResponses.NOK
     }
 
-    override fun zrangeByScore(key: String, min: String, max: String): List<String> {
-        try {
-            if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
-                min.toDouble()
-                max.toDouble()
-            }
-        } catch (e: NumberFormatException) {
-            return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
-        }
-
-        return jedis.zrangeByScore(key, min, max).toList()
+    override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
+        val res = jedis.zrangeByScoreWithScores(key, min, max)
+        return res.map { ZRangeTuple(it.element, it.score) }
     }
 
     override fun flushAll(): String {

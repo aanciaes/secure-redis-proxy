@@ -6,6 +6,7 @@ import org.keycloak.adapters.springsecurity.KeycloakConfiguration
 import org.keycloak.adapters.springsecurity.authentication.KeycloakAuthenticationProvider
 import org.keycloak.adapters.springsecurity.config.KeycloakWebSecurityConfigurerAdapter
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpMethod
@@ -17,6 +18,9 @@ import org.springframework.security.web.authentication.session.SessionAuthentica
 
 @KeycloakConfiguration
 internal class SecurityConfig : KeycloakWebSecurityConfigurerAdapter() {
+
+    @Value("\${spring.profiles.active}")
+    private val activeProfile: String? = null
 
     /**
      * Registers the KeycloakAuthenticationProvider with the authentication manager.
@@ -53,11 +57,19 @@ internal class SecurityConfig : KeycloakWebSecurityConfigurerAdapter() {
     @Throws(Exception::class)
     override fun configure(http: HttpSecurity) {
         super.configure(http)
-        http.csrf().disable()
-            .authorizeRequests()
-            .antMatchers(HttpMethod.GET, "/redis/*", "/redis/zadd/*").hasAnyAuthority("BasicUser", "Administrator")
-            .antMatchers(HttpMethod.POST, "/redis", "/redis/", "/redis/zadd").hasAuthority("Administrator")
-            .antMatchers(HttpMethod.DELETE, "/", "/*").hasRole("Administrator")
-            .anyRequest().denyAll()
+
+        if (activeProfile == "dev") {
+            http.csrf().disable()
+                .authorizeRequests()
+                .antMatchers("/**").permitAll()
+                .anyRequest().permitAll()
+        } else {
+            http.csrf().disable()
+                .authorizeRequests()
+                .antMatchers(HttpMethod.GET, "/redis/*", "/redis/zadd/*").hasAnyAuthority("BasicUser", "Administrator")
+                .antMatchers(HttpMethod.POST, "/redis", "/redis/", "/redis/zadd").hasAuthority("Administrator")
+                .antMatchers(HttpMethod.DELETE, "/", "/*").hasRole("Administrator")
+                .anyRequest().denyAll()
+        }
     }
 }

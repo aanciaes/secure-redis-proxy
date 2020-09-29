@@ -1,7 +1,11 @@
 package anciaes.secure.redis.service
 
 /* ktlint-disable */
+import anciaes.secure.redis.exceptions.BrokenSecurityException
+import anciaes.secure.redis.exceptions.FunctionNotImplementedException
 import anciaes.secure.redis.model.ApplicationProperties
+import anciaes.secure.redis.model.RedisResponses
+import anciaes.secure.redis.model.ZRangeTuple
 import anciaes.secure.redis.utils.KeystoreUtils
 import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoDet
@@ -17,7 +21,7 @@ import java.util.HashSet
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
+
 /* ktlint-enable */
 
 class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
@@ -73,48 +77,47 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
     override fun get(key: String): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
         return when (val value = jedis.get(encryptedKey)) {
-            null -> "(nil)"
+            null -> RedisResponses.NIL
             else -> getSecureValue(value)
         }
     }
 
     override fun del(key: String): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
-        return if (jedis.del(encryptedKey) == 1L) "OK" else "NOK"
+        return if (jedis.del(encryptedKey) == 1L) RedisResponses.OK else RedisResponses.NOK
     }
 
-    override fun zadd(key: String, score: String, value: String): String {
+    override fun zadd(key: String, score: Double, value: String): String {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
-        val encryptedScoreDouble = try {
-            val scoreInt = score.toInt()
-            ope.encrypt(scoreInt).toDouble()
-        } catch (e: NumberFormatException) {
-            return "NOK - Score must be a number"
-        }
+
+        val scoreInt = score.toInt()
+        val encryptedScoreDouble = ope.encrypt(scoreInt).toDouble()
 
         val secureValue = computeSecureValue(value)
-        return if (jedis.zadd(encryptedKey, encryptedScoreDouble, secureValue) == 1L) "OK" else "NOK"
+        return if (jedis.zadd(
+                encryptedKey,
+                encryptedScoreDouble,
+                secureValue
+            ) == 1L
+        ) RedisResponses.OK else RedisResponses.NOK
     }
 
-    override fun zrangeByScore(key: String, min: String, max: String): List<String> {
+    override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
         val encryptedKey = HomoDet.encrypt(secretKey, key)
         var encryptedMin = "-inf"
         var encryptedMax = "+inf"
 
-        try {
-            if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
-                encryptedMin = ope.encrypt(min.toInt()).toString()
-                encryptedMax = ope.encrypt(max.toInt()).toString()
-            }
-        } catch (e: NumberFormatException) {
-            return listOf("NOK - Score must be a number of [-inf, inf, +inf]")
+        if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
+            encryptedMin = ope.encrypt(min.toInt()).toString()
+            encryptedMax = ope.encrypt(max.toInt()).toString()
         }
 
-        return jedis.zrangeByScore(encryptedKey, encryptedMin, encryptedMax).toList().map { getSecureValue(it) }
+        val res = jedis.zrangeByScoreWithScores(encryptedKey, encryptedMin, encryptedMax)
+        return res.map { ZRangeTuple(getSecureValue(it.element), ope.decrypt(it.score.toLong()).toDouble()) }
     }
 
     override fun flushAll(): String {
-        return "Error: Flush all for cluster is not supported yet..."
+        throw FunctionNotImplementedException("Error: Flush all for cluster is not supported yet...")
     }
 
     private fun computeSecureValue(value: String): String {
@@ -131,14 +134,14 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
         val integrityCheck = computeIntegrityHash("${composite[0]}|${composite[1]}")
         if (integrityCheck != composite[2]) {
-            return "Integrity Validation Failed... Data might was tampered."
+            throw BrokenSecurityException("Integrity Validation Failed... Data might was tampered.")
         }
         val value = decryptValue(composite[0])
 
         return if (verifySignature(value, composite[1])) {
             value
         } else {
-            "Error verifying authenticity..."
+            throw BrokenSecurityException("Error verifying authenticity...")
         }
     }
 

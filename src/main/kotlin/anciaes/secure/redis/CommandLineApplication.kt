@@ -84,7 +84,7 @@ fun executeCommand(redisService: RedisService, command: List<String>): Boolean {
             if (command.size != 4) {
                 println("Wrong number of arguments. Usage: zadd <key> <score> <value>")
             } else {
-                println(redisService.zadd(command[1], command[2], command[3]))
+                println(redisService.zadd(command[1], command[2].toDouble(), command[3]))
             }
         }
         "zrange" -> {

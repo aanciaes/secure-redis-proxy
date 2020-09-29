@@ -9,10 +9,9 @@ private const val prod = "prod"
 object ConfigurationUtils {
 
     fun loadApplicationConfigurations(): ApplicationProperties {
-        var configurationFile = ""
         val profile = System.getenv("spring-profile") ?: "dev"
 
-        configurationFile = if (profile == prod) {
+        val configurationFile = if (profile == prod) {
             "/prod-application.conf"
         } else {
             "/application.conf"
