@@ -1,13 +1,19 @@
 package anciaes.secure.redis.utils
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
+import org.springframework.context.annotation.Bean
+import org.springframework.stereotype.Component
 import java.util.Properties
+/* ktlint-enable */
 
 private const val dev = "dev"
 private const val prod = "prod"
 
+@Component
 object ConfigurationUtils {
 
+    @Bean
     fun loadApplicationConfigurations(): ApplicationProperties {
         val profile = System.getenv("spring-profile") ?: "dev"
 
@@ -36,6 +42,8 @@ object ConfigurationUtils {
 
             props.getProperty("redis.cluster")?.toBoolean() ?: false,
             props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() },
+
+            props.getProperty("redis.attestation.port")?.toInt() ?: 8541,
 
             props.getProperty("key.encryption.det.secret"),
             props.getProperty("key.encryption.ope.secret"),

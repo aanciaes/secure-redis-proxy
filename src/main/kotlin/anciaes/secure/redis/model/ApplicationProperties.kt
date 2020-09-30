@@ -19,6 +19,8 @@ data class ApplicationProperties(
     val isCluster: Boolean,
     val clusterContactNodes: List<String>?,
 
+    val redisAttestationPort: Int,
+
     val keyEncryptionDetSecret: String?,
     val keyEncryptionOpeSecret: String?,
 
