@@ -26,8 +26,8 @@ class AttestationServiceImpl : AttestationService {
     override fun attestProxy(): RemoteAttestation {
         val hash = hashFile("Dockerfile")
         println(hash)
-        // TODO: Hash and sign proxy jar
         // TODO: Add keystore, jar, mrenclave files to application.conf
+        // TODO: Hash and sign proxy jar
         // TODO: Create MRENCLAVE file / generate it dinamically. Then sign it
         // TODO: Response
         TODO("Not yet implemented")
