@@ -9,6 +9,7 @@ import anciaes.secure.redis.utils.KeystoreUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import khttp.get
+import khttp.structures.authorization.BasicAuthorization
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -38,13 +39,16 @@ class AttestationServiceImpl : AttestationService {
     val proxyIdentityKeyNamePassword =
         if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
     val proxyJarChallenge =
-        if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.2.jar" else "mock-files/mock-proxy-java-jar"
+        if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.3.jar" else "mock-files/mock-proxy-java-jar"
     val proxyMrEnclaveChallenge =
         if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
 
     val attestationSignatureAlgorithm = "SHA512withRSA"
     val attestationSignatureProvider = "SunRsaSign"
     val attestationHashingAlgorithm = "sha-256"
+
+    val remoteAttestationServerUsername = "redis-proxy-cd497e6b-10cf-4ed2-be63-18b6b16375f6"
+    val remoteAttestationServerPassword = "2grvTkqUhS7wE4R4WRjnuXTLzsxnAu"
     //
 
     @Autowired
@@ -52,7 +56,12 @@ class AttestationServiceImpl : AttestationService {
 
     override fun attestRedis(nonce: String): RemoteAttestation {
         val redisAttestEndpoint = "http://${props.redisHost}:$redisAttestationPort/attest?nonce=$nonce"
-        return jacksonObjectMapper().readValue(get(redisAttestEndpoint).text)
+        return jacksonObjectMapper().readValue(
+            get(
+                redisAttestEndpoint,
+                auth = BasicAuthorization(remoteAttestationServerUsername, remoteAttestationServerPassword)
+            ).text
+        )
     }
 
     override fun attestProxy(nonce: String): RemoteAttestation {
@@ -82,7 +91,7 @@ class AttestationServiceImpl : AttestationService {
         val fis = FileInputStream(file)
 
         val byteArray = ByteArray(1024)
-        var bytesCount = 0
+        var bytesCount: Int
 
         while (fis.read(byteArray).also { bytesCount = it } != -1) {
             digest.update(byteArray, 0, bytesCount)
