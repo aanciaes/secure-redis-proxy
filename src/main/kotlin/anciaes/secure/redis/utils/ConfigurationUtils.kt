@@ -43,8 +43,6 @@ object ConfigurationUtils {
             props.getProperty("redis.cluster")?.toBoolean() ?: false,
             props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() },
 
-            props.getProperty("redis.attestation.port")?.toInt() ?: 8541,
-
             props.getProperty("key.encryption.det.secret"),
             props.getProperty("key.encryption.ope.secret"),
 
