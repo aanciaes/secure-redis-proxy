@@ -31,8 +31,8 @@ class AttestationServiceImpl : AttestationService {
     val proxyIdentityKeyKeystorePassword = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
     val proxyIdentityKeyName = if (activeProfile == "prod") "proxy-attestation-identity-key" else "proxy-attetstation-identity-key"
     val proxyIdentityKeyNamePassword = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
-    val proxyJarChallenge =  if (activeProfile == "prod") "mock-files/mock-proxy-java-jar" else "mock-files/mock-proxy-java-jar"
-    val proxyMrEnclaveChallenge =  if (activeProfile == "prod") "mock-files/mrenclave-mock" else "mock-files/mrenclave-mock"
+    val proxyJarChallenge =  if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.2.jar" else "mock-files/mock-proxy-java-jar"
+    val proxyMrEnclaveChallenge =  if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
 
     val attestationSignatureAlgorithm = "SHA512withRSA"
     val attestationSignatureProvider = "SunRsaSign"
