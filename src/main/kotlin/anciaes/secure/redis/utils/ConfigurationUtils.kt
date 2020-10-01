@@ -1,13 +1,19 @@
 package anciaes.secure.redis.utils
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
+import org.springframework.context.annotation.Bean
+import org.springframework.stereotype.Component
 import java.util.Properties
+/* ktlint-enable */
 
 private const val dev = "dev"
 private const val prod = "prod"
 
+@Component
 object ConfigurationUtils {
 
+    @Bean
     fun loadApplicationConfigurations(): ApplicationProperties {
         val profile = System.getenv("spring-profile") ?: "dev"
 
