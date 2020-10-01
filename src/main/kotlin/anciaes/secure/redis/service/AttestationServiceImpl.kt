@@ -1,5 +1,6 @@
 package anciaes.secure.redis.service
 
+/* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.AttestationChallenge
 import anciaes.secure.redis.model.AttestationQuote
@@ -17,6 +18,7 @@ import java.security.MessageDigest
 import java.security.Signature
 import java.util.Base64
 
+/* ktlint-enable */
 
 @Service
 class AttestationServiceImpl : AttestationService {
@@ -27,12 +29,18 @@ class AttestationServiceImpl : AttestationService {
     // This values are not subject to user configuration so they are hardcoded
     val redisAttestationPort = 8541
     val proxyIdentityKeyKeystoreType = "PKCS12"
-    val proxyIdentityKeyKeystore = if (activeProfile == "prod") "production-keystores/proxy-attestation-identity-key.p12"  else "keystores/proxy-attestation-identity-key.p12"
-    val proxyIdentityKeyKeystorePassword = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
-    val proxyIdentityKeyName = if (activeProfile == "prod") "proxy-attestation-identity-key" else "proxy-attetstation-identity-key"
-    val proxyIdentityKeyNamePassword = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
-    val proxyJarChallenge =  if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.2.jar" else "mock-files/mock-proxy-java-jar"
-    val proxyMrEnclaveChallenge =  if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
+    val proxyIdentityKeyKeystore =
+        if (activeProfile == "prod") "production-keystores/proxy-attestation-identity-key.p12" else "keystores/proxy-attestation-identity-key.p12"
+    val proxyIdentityKeyKeystorePassword =
+        if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
+    val proxyIdentityKeyName =
+        if (activeProfile == "prod") "proxy-attestation-identity-key" else "proxy-attetstation-identity-key"
+    val proxyIdentityKeyNamePassword =
+        if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
+    val proxyJarChallenge =
+        if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.2.jar" else "mock-files/mock-proxy-java-jar"
+    val proxyMrEnclaveChallenge =
+        if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
 
     val attestationSignatureAlgorithm = "SHA512withRSA"
     val attestationSignatureProvider = "SunRsaSign"
@@ -43,7 +51,7 @@ class AttestationServiceImpl : AttestationService {
     lateinit var props: ApplicationProperties
 
     override fun attestRedis(nonce: String): RemoteAttestation {
-        val redisAttestEndpoint = "http://${props.redisHost}:${redisAttestationPort}/attest?nonce=$nonce"
+        val redisAttestEndpoint = "http://${props.redisHost}:$redisAttestationPort/attest?nonce=$nonce"
         return jacksonObjectMapper().readValue(get(redisAttestEndpoint).text)
     }
 
@@ -59,7 +67,13 @@ class AttestationServiceImpl : AttestationService {
         val noncePlusOne = nonce.toInt() + 1
         val quoteSignature = signData("$jarChallenge|$mrEnclave|$noncePlusOne")
 
-        return RemoteAttestation(AttestationQuote(listOf(jarChallenge, mrEnclaveChallenge), noncePlusOne, quoteSignature))
+        return RemoteAttestation(
+            AttestationQuote(
+                listOf(jarChallenge, mrEnclaveChallenge),
+                noncePlusOne,
+                quoteSignature
+            )
+        )
     }
 
     private fun hashFile(file: String): String {
