@@ -236,6 +236,4 @@ Check github milestones [here](https://github.com/aanciaes/redis-homomorphic-enc
 
 Current milestones:
 
-* [0.1](https://github.com/aanciaes/redis-homomorphic-enc/milestone/1)
-* [0.2](https://github.com/aanciaes/redis-homomorphic-enc/milestone/2)
-* [0.3](https://github.com/aanciaes/redis-homomorphic-enc/milestone/3)
+* [0.3.1](https://github.com/aanciaes/redis-homomorphic-enc/milestone/4)
