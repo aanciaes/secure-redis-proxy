@@ -1,0 +1,297 @@
+openapi: 3.0.0
+info:
+  title: Secure Redis Proxy Api
+  description: Secure Redis Proxy Api
+  version: 0.3.1
+servers:
+  - url: 'https://localhost:8443/'
+  - url: 'https://ns31249243.ip-51-210-0.eu:8777'
+paths:
+  /redis:
+    post:
+      tags:
+        - Redis
+      summary: Sets the given value to the given key. If a key already exists, the value is overwritten.
+      operationId: postKeyPair
+      requestBody:
+        description: Key pair value to be added to Redis
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCommand'
+        required: true
+      responses:
+        201:
+          description: Key Value Inserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetResponse'
+    delete:
+      tags:
+        - Redis
+      summary: Deletes all redis data
+      operationId: flushAll
+      responses:
+        201:
+          description: All data deleted
+  /redis/{key}:
+    get:
+      tags:
+        - Redis
+      summary: Gets value associated with given key
+      operationId: getKeyPair
+      parameters:
+        - name: key
+          in: path
+          description: Key to be retrived
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns key value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetResponse'
+        404:
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Redis
+      summary: Deletes value associated with given key
+      operationId: deleteKeyPair
+      parameters:
+        - name: key
+          in: path
+          description: Key to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Key deleted
+        404:
+          description: Key not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /redis/zadd:
+    post:
+      tags:
+        - Redis
+      summary: Adds the given value to a set with the given key.
+      operationId: postKeyScoreSet
+      requestBody:
+        description: Key pair score value to be added to Redis.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZAddCommand'
+        required: true
+      responses:
+        200:
+          description: Key Score Value Inserted to Set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZAddResponse'
+        400:
+          description: Score could not be parsed. Score should be a number
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /redis/zadd/{key}:
+    get:
+      tags:
+        - Redis
+      summary: Returns all values of set between given scores
+      operationId: getKeyScoreSet
+      parameters:
+        - name: key
+          in: path
+          description: Key to returned
+          required: true
+          schema:
+            type: string
+        - name: min
+          in: query
+          description: Score minimum
+          required: false
+          schema:
+            type: string
+            enum: [-inf, inf, anyNumber]
+        - name: max
+          in: query
+          description: Score maximum
+          required: false
+          schema:
+            type: string
+            enum: [ -inf, inf, anyNumber ]
+      responses:
+        200:
+          description: Key Score Value Inserted to Set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ZRangeResponse'
+        400:
+          description: Min and Max must be a number or [-inf, inf]
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /attest:
+    get:
+      tags:
+        - Remote Attestation
+      parameters:
+        - name: nonce
+          in: query
+          description: Nonce Challenge
+          required: true
+          schema:
+            type: string
+            format: number
+      responses:
+        200:
+          description: Redis Container and Proxy Challenges Remote Attestation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationAttestation'
+components:
+  schemas:
+    SetCommand:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        expiration:
+          type: integer
+          format: long
+        expTimeUnit:
+          type: string
+          format: TimeUnit
+          enum: [ms, s]
+      required:
+        - key
+        - value
+    SetResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        expiration:
+          type: integer
+          format: long
+        expTimeUnit:
+          type: string
+          enum: [ms, s]
+        localtion:
+          type: string
+          description: "Path to get the record"
+    GetResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+    ZAddCommand:
+      type: object
+      properties:
+        key:
+          type: string
+        score:
+          type: string
+          format: number
+          description: Integer that represents the score of the value
+        value:
+          type: string
+      required:
+        - key
+        - score
+        - value
+    ZAddResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        score:
+          type: string
+          format: number
+          description: Integer that represents the score of the value
+        valueAdded:
+          type: string
+        location:
+          type: string
+          description: "Path to get the record"
+    ZRangeResponse:
+      type: object
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/ZRangeTuple'
+    ZRangeTuple:
+      type: object
+      properties:
+        value:
+          type: string
+        score:
+          type: number
+          format: double
+    ApplicationAttestation:
+      type: object
+      properties:
+        redis:
+          $ref: '#/components/schemas/RemoteAttestation'
+        proxy:
+          $ref: '#/components/schemas/RemoteAttestation'
+    RemoteAttestation:
+      type: object
+      properties:
+        quote:
+          $ref: '#/components/schemas/AttestationQuote'
+    AttestationQuote:
+      type: object
+      properties:
+        challenges:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttestationChallenge'
+        nonce:
+          type: integer
+        quoteSignature:
+          type: string
+          format: base64
+    AttestationChallenge:
+      type: object
+      properties:
+        filename:
+          type: string
+          format: path
+        hash:
+          type: string
+          format: hex
+    ErrorResponse:
+      type: string
+      properties:
+        status:
+          type: number
+        message:
+          type: string
