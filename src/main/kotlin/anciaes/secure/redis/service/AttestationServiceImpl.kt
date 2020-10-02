@@ -66,12 +66,10 @@ class AttestationServiceImpl : AttestationService {
 
     override fun attestProxy(nonce: String): RemoteAttestation {
         val jarHash = hashFile(proxyJarChallenge)
-        val signedJarHash = signData(jarHash)
-        val jarChallenge = AttestationChallenge(proxyJarChallenge, jarHash, signedJarHash)
+        val jarChallenge = AttestationChallenge(proxyJarChallenge, jarHash)
 
         val mrEnclave = readMrEnclave(proxyMrEnclaveChallenge)
-        val signedMrEnclave = signData(mrEnclave)
-        val mrEnclaveChallenge = AttestationChallenge(proxyMrEnclaveChallenge, mrEnclave, signedMrEnclave)
+        val mrEnclaveChallenge = AttestationChallenge(proxyMrEnclaveChallenge, mrEnclave)
 
         val noncePlusOne = nonce.toInt() + 1
         val quoteSignature = signData("$jarChallenge|$mrEnclave|$noncePlusOne")
@@ -89,7 +87,6 @@ class AttestationServiceImpl : AttestationService {
         val digest: MessageDigest = MessageDigest.getInstance(attestationHashingAlgorithm)
 
         val fis = FileInputStream(file)
-
         val byteArray = ByteArray(1024)
         var bytesCount: Int
 
