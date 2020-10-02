@@ -7,7 +7,7 @@ spring:
     active: dev
 
 ---
-#Dev settings
+# Dev settings
 spring:
   profiles: dev
   main:
@@ -32,7 +32,7 @@ keycloak:
   bearer-only: true
 
 ---
-#Production settings
+# Production settings
 spring:
   profiles: prod
   main:

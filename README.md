@@ -41,7 +41,7 @@ to the Redis server.
 To build the production image:
 
 1. `docker build -f prod.Dockerfile -t secure-redis-proxy:prod .`
-2. To test on local machine run: `docker run --rm --name secure-redis-proxy -it -p 8443:8443 secure-redis-proxy:prod`
+2. To test on local machine run: `docker run --rm --name secure-redis-proxy -it -p 8777:8777 secure-redis-proxy:prod`
 
 ### Push to docker hub
 
@@ -52,13 +52,13 @@ To build the production image:
 
 If image is ready for production, build the prod tag and push:
 
-1. `docker build -f prod.Dockerfile -t aanciaes/secure-redis-proxy:prod`
-2. `docker push aanciaes/secure-redis-proxy:prod`
+1. `docker build -f prod.Dockerfile -t aanciaes/secure-redis-proxy:latest .`
+2. `docker push aanciaes/secure-redis-proxy:latest`
 
 ### Running on Production Environment
 
 1. Login to docker
-2. `docker run --rm --name secure-redis-proxy -it -d -p 8777:8777 --device=/dev/isgx -e SCONE_MODE=HW aanciaes/secure-redis-proxy:prod`
+2. `docker run --rm --name secure-redis-proxy -it -d -p 8777:8777 --device=/dev/isgx -e SCONE_MODE=HW aanciaes/secure-redis-proxy:latest`
 
 **Notes:**
 

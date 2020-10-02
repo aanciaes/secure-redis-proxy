@@ -74,7 +74,7 @@ task runCommandLine(type: JavaExec) {
 }
 
 bootRun {
-    def profile = System.getenv("spring-profile") ?: "dev"
+    def profile = System.getenv("spring_profile") ?: "dev"
 
     args = ["--spring.profiles.active=" + profile]
     jvmArgs = ["-Dspring.config.location=src/main/resources/spring-application.yml"]

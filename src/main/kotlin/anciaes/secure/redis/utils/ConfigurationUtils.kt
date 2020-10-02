@@ -15,7 +15,7 @@ object ConfigurationUtils {
 
     @Bean
     fun loadApplicationConfigurations(): ApplicationProperties {
-        val profile = System.getenv("spring-profile") ?: "dev"
+        val profile = System.getenv("spring_profile") ?: "dev"
 
         val configurationFile = if (profile == prod) {
             "/prod-application.conf"

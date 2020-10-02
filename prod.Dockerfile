@@ -25,11 +25,11 @@ COPY --from=builder /home/gradle/project/src/main/resources/spring-application.y
 COPY ./production-keystores/ ./production-keystores
 
 # Set production profile
-ENV spring-profile prod
+ENV spring_profile prod
 
 # Run App
-COPY start.sh /home/start.sh
+COPY start.sh /home/secure-proxy-redis/start.sh
 
-RUN chmod +x /home/start.sh
+RUN chmod +x /home/secure-proxy-redis/start.sh
 
 CMD ["/home/secure-proxy-redis/start.sh"]
