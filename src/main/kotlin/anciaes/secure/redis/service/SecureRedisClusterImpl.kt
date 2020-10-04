@@ -200,7 +200,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private fun buildJedisClusterClient(applicationProperties: ApplicationProperties): JedisCluster {
         val jedisClusterNodes: MutableSet<HostAndPort> = HashSet()
-        applicationProperties.clusterContactNodes!!.forEach {
+        applicationProperties.replicationNodes!!.forEach {
             jedisClusterNodes.add(HostAndPort.parseString(it))
         }
 

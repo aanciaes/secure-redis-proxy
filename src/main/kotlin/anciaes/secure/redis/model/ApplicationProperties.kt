@@ -1,5 +1,10 @@
 package anciaes.secure.redis.model
 
+enum class ReplicationMode {
+    MasterSlave,
+    Cluster
+}
+
 data class ApplicationProperties(
     val secure: Boolean,
 
@@ -16,8 +21,9 @@ data class ApplicationProperties(
     val tlsTruststorePath: String?,
     val tlsTruststorePassword: String?,
 
-    val isCluster: Boolean,
-    val clusterContactNodes: List<String>?,
+    val replicationEnabled: Boolean,
+    val replicationMode: ReplicationMode,
+    val replicationNodes: List<String>?,
 
     val keyEncryptionDetSecret: String?,
     val keyEncryptionOpeSecret: String?,

@@ -1,5 +1,6 @@
 package anciaes.secure.redis.utils
 
+import anciaes.secure.redis.model.ReplicationMode
 import anciaes.secure.redis.service.RedisClusterImpl
 import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
@@ -21,7 +22,7 @@ object SpringConfigurationUtils {
 
         return if (props.secure) {
 
-            if (props.isCluster) {
+            if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
                 logger.info("Initializing Secure Redis Cluster...")
                 SecureRedisClusterImpl(props)
             } else {
@@ -29,7 +30,7 @@ object SpringConfigurationUtils {
                 SecureRedisServiceImpl(props)
             }
         } else {
-            if (props.isCluster) {
+            if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
                 logger.info("Initializing Non-Secure Redis Cluster...")
                 RedisClusterImpl(props)
             } else {

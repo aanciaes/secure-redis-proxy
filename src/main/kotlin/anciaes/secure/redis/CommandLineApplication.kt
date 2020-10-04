@@ -1,5 +1,6 @@
 package anciaes.secure.redis
 
+import anciaes.secure.redis.model.ReplicationMode
 import anciaes.secure.redis.service.RedisClusterImpl
 import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
@@ -12,7 +13,7 @@ fun main() {
     val props = ConfigurationUtils.loadApplicationConfigurations()
     val redisService: RedisService = if (props.secure) {
 
-        if (props.isCluster) {
+        if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
             println("Initializing Secure Redis Cluster...")
             SecureRedisClusterImpl(props)
         } else {
@@ -20,7 +21,7 @@ fun main() {
             SecureRedisServiceImpl(props)
         }
     } else {
-        if (props.isCluster) {
+        if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
             println("Initializing Non-Secure Redis Cluster...")
             RedisClusterImpl(props)
         } else {
