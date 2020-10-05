@@ -71,22 +71,24 @@ class AttestationServiceImpl : AttestationService {
                 remoteQuote.quote
             )
         )
-        val nodes = props.replicationNodes ?: listOf()
-        // TODO: perform all request in an asynchronous way
-        for (node in nodes) {
-            val nodeQuote = jacksonObjectMapper().readValue<RemoteAttestation>(
-                get(
-                    "http://${node.host}:${node.attestationPort}/attest?nonce=$nonce",
-                    auth = BasicAuthorization(remoteAttestationServerUsername, remoteAttestationServerPassword)
-                ).text
-            )
-
-            redisNodeAttestation.add(
-                RedisNodeRemoteAttestation(
-                    "${node.host}:${node.attestationPort}",
-                    nodeQuote.quote
+        if (props.replicationEnabled) {
+            val nodes = props.replicationNodes ?: listOf()
+            // TODO: perform all request in an asynchronous way
+            for (node in nodes) {
+                val nodeQuote = jacksonObjectMapper().readValue<RemoteAttestation>(
+                    get(
+                        "http://${node.host}:${node.attestationPort}/attest?nonce=$nonce",
+                        auth = BasicAuthorization(remoteAttestationServerUsername, remoteAttestationServerPassword)
+                    ).text
                 )
-            )
+
+                redisNodeAttestation.add(
+                    RedisNodeRemoteAttestation(
+                        "${node.host}:${node.attestationPort}",
+                        nodeQuote.quote
+                    )
+                )
+            }
         }
 
         return redisNodeAttestation

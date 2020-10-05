@@ -69,6 +69,7 @@ internal class SecurityConfig : KeycloakWebSecurityConfigurerAdapter() {
                 .antMatchers(HttpMethod.GET, "/redis/*", "/redis/zadd/*").hasAnyAuthority("BasicUser", "Administrator")
                 .antMatchers(HttpMethod.POST, "/redis", "/redis/", "/redis/zadd").hasAuthority("Administrator")
                 .antMatchers(HttpMethod.DELETE, "/", "/*").hasAuthority("Administrator")
+                .antMatchers(HttpMethod.GET, "/attest", "/attest/").hasAuthority("Administrator")
                 .anyRequest().denyAll()
         }
     }

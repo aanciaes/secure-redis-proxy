@@ -14,18 +14,18 @@ fun main() {
     val redisService: RedisService = if (!props.secure) {
 
         if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
-            println("Initializing Secure Redis Cluster...")
+            println("Initializing Encrypted Redis Cluster...")
             SecureRedisClusterImpl(props)
         } else {
-            println("Initializing Secure Redis...")
+            println("Initializing Encrypted Redis...")
             SecureRedisServiceImpl(props)
         }
     } else {
         if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
-            println("Initializing Non-Secure Redis Cluster...")
+            println("Initializing Non-Encrypted Redis Cluster...")
             RedisClusterImpl(props)
         } else {
-            println("Initializing Non-Secure Redis...")
+            println("Initializing Non-Encrypted Redis...")
             RedisServiceImpl(props)
         }
     }

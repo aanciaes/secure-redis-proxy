@@ -23,18 +23,18 @@ object SpringConfigurationUtils {
         return if (!props.secure) {
 
             if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
-                logger.info("Initializing Secure Redis Cluster...")
+                logger.info("Initializing Encrypted Redis Cluster...")
                 SecureRedisClusterImpl(props)
             } else {
-                logger.info("Initializing Secure Redis...")
+                logger.info("Initializing Encrypted Redis...")
                 SecureRedisServiceImpl(props)
             }
         } else {
             if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
-                logger.info("Initializing Non-Secure Redis Cluster...")
+                logger.info("Initializing Non-Encrypted Redis Cluster...")
                 RedisClusterImpl(props)
             } else {
-                logger.info("Initializing Non-Secure Redis...")
+                logger.info("Initializing Non-Encrypted Redis...")
                 RedisServiceImpl(props)
             }
         }
