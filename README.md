@@ -131,7 +131,8 @@ data.hmac.keystore.keyName=integritykey
 data.hmac.keystore.keyPassword=secretpassword
 ```
 
-`application.secure` - true if data stored in redis is completly encrypted using homomorphic ciphers.
+`application.secure` - true if the redis server is secured by SGX - Data can be written in clear text.
+False if redis server is running on untrusted memory and data needs to be completely encrypted using homomorphic ciphers.
 
 `redis.host` - Redis Host
 

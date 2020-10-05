@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 fun main() {
     val props = ConfigurationUtils.loadApplicationConfigurations()
-    val redisService: RedisService = if (props.secure) {
+    val redisService: RedisService = if (!props.secure) {
 
         if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
             println("Initializing Secure Redis Cluster...")

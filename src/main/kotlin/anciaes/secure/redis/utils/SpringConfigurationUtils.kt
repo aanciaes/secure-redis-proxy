@@ -20,7 +20,7 @@ object SpringConfigurationUtils {
     fun loadCorrectRedisImplementation(): RedisService {
         val props = ConfigurationUtils.loadApplicationConfigurations()
 
-        return if (props.secure) {
+        return if (!props.secure) {
 
             if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
                 logger.info("Initializing Secure Redis Cluster...")
