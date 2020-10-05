@@ -157,7 +157,7 @@ data.hmac.keystore.keyPassword=secretpassword
 `redis.replication.mode` - Defines the replication mode of the Redis. Options are MasterSlave or Cluster.
 
 `redis.replication.nodes` - List of node contact points of Redis Replication. All nodes of any replication node should be listed so
-proxy can attest all nodes of the infrastructure. List separated by commas in form of `host:port`.
+proxy can attest all nodes of the infrastructure. List separated by commas in form of `host:port|attestationPort`.
 
 `key.encryption.det.secret` - Base64 secret key to encrypt the Redis keys in deterministic form.
 

@@ -57,7 +57,7 @@ class RedisClusterImpl(props: ApplicationProperties) : RedisService {
     private fun buildJedisClusterClient(applicationProperties: ApplicationProperties): JedisCluster {
         val jedisClusterNodes: MutableSet<HostAndPort> = HashSet()
         applicationProperties.replicationNodes!!.forEach {
-            jedisClusterNodes.add(HostAndPort.parseString(it))
+            jedisClusterNodes.add(HostAndPort.parseString("${it.host}:${it.port}"))
         }
 
         return if (applicationProperties.tlsEnabled) {

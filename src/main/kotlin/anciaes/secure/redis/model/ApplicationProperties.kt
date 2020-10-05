@@ -5,6 +5,8 @@ enum class ReplicationMode {
     Cluster
 }
 
+data class RedisNode(val host: String, val port: String, val attestationPort: String)
+
 data class ApplicationProperties(
     val secure: Boolean,
 
@@ -23,7 +25,7 @@ data class ApplicationProperties(
 
     val replicationEnabled: Boolean,
     val replicationMode: ReplicationMode,
-    val replicationNodes: List<String>?,
+    val replicationNodes: List<RedisNode>?,
 
     val keyEncryptionDetSecret: String?,
     val keyEncryptionOpeSecret: String?,
