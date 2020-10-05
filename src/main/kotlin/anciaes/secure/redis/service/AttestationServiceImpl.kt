@@ -4,6 +4,7 @@ package anciaes.secure.redis.service
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.AttestationChallenge
 import anciaes.secure.redis.model.AttestationQuote
+import anciaes.secure.redis.model.RedisNodeRemoteAttestation
 import anciaes.secure.redis.model.RemoteAttestation
 import anciaes.secure.redis.utils.KeystoreUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -54,14 +55,41 @@ class AttestationServiceImpl : AttestationService {
     @Autowired
     lateinit var props: ApplicationProperties
 
-    override fun attestRedis(nonce: String): RemoteAttestation {
+    override fun attestRedis(nonce: String): List<RedisNodeRemoteAttestation> {
+        val redisNodeAttestation = mutableListOf<RedisNodeRemoteAttestation>()
         val redisAttestEndpoint = "http://${props.redisHost}:$redisAttestationPort/attest?nonce=$nonce"
-        return jacksonObjectMapper().readValue(
+        val remoteQuote = jacksonObjectMapper().readValue<RemoteAttestation>(
             get(
                 redisAttestEndpoint,
                 auth = BasicAuthorization(remoteAttestationServerUsername, remoteAttestationServerPassword)
             ).text
         )
+
+        redisNodeAttestation.add(
+            RedisNodeRemoteAttestation(
+                "${props.redisHost}:$redisAttestationPort",
+                remoteQuote.quote
+            )
+        )
+        val nodes = props.replicationNodes ?: listOf()
+        // TODO: perform all request in an asynchronous way
+        for (node in nodes) {
+            val nodeQuote = jacksonObjectMapper().readValue<RemoteAttestation>(
+                get(
+                    "http://${node.host}:${node.attestationPort}/attest?nonce=$nonce",
+                    auth = BasicAuthorization(remoteAttestationServerUsername, remoteAttestationServerPassword)
+                ).text
+            )
+
+            redisNodeAttestation.add(
+                RedisNodeRemoteAttestation(
+                    "${node.host}:${node.attestationPort}",
+                    nodeQuote.quote
+                )
+            )
+        }
+
+        return redisNodeAttestation
     }
 
     override fun attestProxy(nonce: String): RemoteAttestation {
@@ -75,7 +103,7 @@ class AttestationServiceImpl : AttestationService {
         val quoteSignature = signData("$jarChallenge|$mrEnclave|$noncePlusOne")
 
         return RemoteAttestation(
-            AttestationQuote(
+            quote = AttestationQuote(
                 listOf(jarChallenge, mrEnclaveChallenge),
                 noncePlusOne,
                 quoteSignature

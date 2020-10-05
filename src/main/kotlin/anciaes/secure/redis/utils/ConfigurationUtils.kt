@@ -2,9 +2,12 @@ package anciaes.secure.redis.utils
 
 /* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties
+import anciaes.secure.redis.model.RedisNode
+import anciaes.secure.redis.model.ReplicationMode
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
 import java.util.Properties
+
 /* ktlint-enable */
 
 private const val dev = "dev"
@@ -40,8 +43,15 @@ object ConfigurationUtils {
             props.getProperty("redis.tls.truststore.path"),
             props.getProperty("redis.tls.truststore.password"),
 
-            props.getProperty("redis.cluster")?.toBoolean() ?: false,
-            props.getProperty("redis.cluster.nodes")?.split(",")?.map { it.trim() },
+            props.getProperty("redis.replication")?.toBoolean() ?: false,
+            ReplicationMode.valueOf(props.getProperty("redis.replication.mode") ?: ReplicationMode.MasterSlave.name),
+            props.getProperty("redis.replication.nodes")?.replace("\\s".toRegex(), "")?.split(",")?.map {
+                val separator = it.trim().split(":")
+                val host = separator.first()
+                val ports = separator.last().split("|")
+
+                RedisNode(host, ports.first(), ports.last())
+            },
 
             props.getProperty("key.encryption.det.secret"),
             props.getProperty("key.encryption.ope.secret"),

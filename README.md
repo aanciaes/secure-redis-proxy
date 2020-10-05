@@ -75,27 +75,28 @@ If image is ready for production, build the prod tag and push:
 The available application configuration are explained below:
 
 ```
-application.secure=true
+application.secure=true/false
 
 # Redis Server Configurations
 redis.host=localhost
 redis.port=6379
 
 # Redis Authentication Configurations
-redis.auth=trure
+redis.auth=true/false
 redis.auth.username=default
 redis.auth.password=redis
 
 # Redis TLS Configurations
-redis.tls=false
+redis.tls=true/false
 redis.tls.keystore.path=/path/to/keystore
 redis.tls.keystore.password=keystore-password
 redis.tls.truststore.path=/path/to/truststore
 redis.tls.truststore.password=truststore-password
 
-# Redis Cluster Configurations
-redis.cluster=false
-redis.cluster.nodes=localhost:7001
+# Redis Replication Configurations
+redis.replication=true/false
+redis.replication.mode=MasterSlave/Cluster
+redis.replication.nodes=localhost:7001|8542, localhost:7002|8543
 
 # Homomorphic Encryption Configurations
 key.encryption.det.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
@@ -151,10 +152,12 @@ data.hmac.keystore.keyPassword=secretpassword
 
 `redis.tls.truststore.password` - Password of the keystore.
 
-`redis.cluster` - True if Redis is running in cluster mode.
+`redis.replication` - True if Redis is running in any replication mode.
 
-`redis.cluster.nodes` - List of node contact points of Redis Cluster. Redis will automatically try to find all cluster nodes from one single contact point.
-List separated by commas in form of `host:port`.
+`redis.replication.mode` - Defines the replication mode of the Redis. Options are MasterSlave or Cluster.
+
+`redis.replication.nodes` - List of node contact points of Redis Replication. All nodes of any replication node should be listed so
+proxy can attest all nodes of the infrastructure. List separated by commas in form of `host:port|attestationPort`.
 
 `key.encryption.det.secret` - Base64 secret key to encrypt the Redis keys in deterministic form.
 
@@ -236,4 +239,4 @@ Check github milestones [here](https://github.com/aanciaes/redis-homomorphic-enc
 
 Current milestones:
 
-* [0.3.1](https://github.com/aanciaes/redis-homomorphic-enc/milestone/4)
+* [0.4](https://github.com/aanciaes/redis-homomorphic-enc/milestone/5)
