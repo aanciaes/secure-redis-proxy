@@ -96,7 +96,7 @@ redis.tls.truststore.password=truststore-password
 # Redis Replication Configurations
 redis.replication=true/false
 redis.replication.mode=MasterSlave/Cluster
-redis.replication.nodes=localhost:7001, localhost:7002
+redis.replication.nodes=localhost:7001|8542, localhost:7002|8543
 
 # Homomorphic Encryption Configurations
 key.encryption.det.secret=rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABD/0YUynK927L2L+Hs1YCGk
