@@ -40,7 +40,7 @@ class AttestationServiceImpl : AttestationService {
     val proxyIdentityKeyNamePassword: String
         get() = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
     val proxyJarChallenge: String
-        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.3.1.jar" else "mock-files/mock-proxy-java-jar"
+        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.4.jar" else "mock-files/mock-proxy-java-jar"
     val proxyMrEnclaveChallenge: String
         get() = if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
 

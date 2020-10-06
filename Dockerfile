@@ -19,10 +19,10 @@ FROM openjdk:8-alpine
 WORKDIR /home/secure-proxy-redis
 
 # Copy built jar and config file from builder environment into running environment
-COPY --from=builder /home/gradle/project/build/libs/secure-redis-proxy-0.3.1.jar .
+COPY --from=builder /home/gradle/project/build/libs/secure-redis-proxy-0.4.jar .
 COPY --from=builder /home/gradle/project/src/main/resources/spring-application.yml .
 
 COPY ./keystores/ ./keystores
 
 # Run jar
-CMD java -jar -Dspring.config.location=spring-application.yml ./secure-redis-proxy-0.3.1.jar
+CMD java -jar -Dspring.config.location=spring-application.yml ./secure-redis-proxy-0.4.jar
