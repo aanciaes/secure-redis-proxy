@@ -31,18 +31,18 @@ class AttestationServiceImpl : AttestationService {
     // This values are not subject to user configuration so they are hardcoded
     val redisAttestationPort = 8541
     val proxyIdentityKeyKeystoreType = "PKCS12"
-    val proxyIdentityKeyKeystore =
-        if (activeProfile == "prod") "production-keystores/proxy-attestation-identity-key.p12" else "keystores/proxy-attestation-identity-key.p12"
-    val proxyIdentityKeyKeystorePassword =
-        if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
-    val proxyIdentityKeyName =
-        if (activeProfile == "prod") "proxy-attestation-identity-key" else "proxy-attetstation-identity-key"
-    val proxyIdentityKeyNamePassword =
-        if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
-    val proxyJarChallenge =
-        if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.3.1.jar" else "mock-files/mock-proxy-java-jar"
-    val proxyMrEnclaveChallenge =
-        if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
+    val proxyIdentityKeyKeystore: String
+        get() = if (activeProfile == "prod") "production-keystores/proxy-attestation-identity-key.p12" else "keystores/proxy-attestation-identity-key.p12"
+    val proxyIdentityKeyKeystorePassword: String
+        get() = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
+    val proxyIdentityKeyName: String
+        get() = if (activeProfile == "prod") "proxy-attestation-identity-key" else "proxy-attetstation-identity-key"
+    val proxyIdentityKeyNamePassword: String
+        get() = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
+    val proxyJarChallenge: String
+        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.3.1.jar" else "mock-files/mock-proxy-java-jar"
+    val proxyMrEnclaveChallenge: String
+        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
 
     val attestationSignatureAlgorithm = "SHA512withRSA"
     val attestationSignatureProvider = "SunRsaSign"
