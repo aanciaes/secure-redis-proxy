@@ -111,7 +111,8 @@ class AttestationServiceImpl : AttestationService {
         val osInfo = getOsInfo()
 
         val noncePlusOne = nonce.toInt() + 1
-        val quoteSignature = signData("$jarChallenge|$mrEnclave|${cpuInfo.processorCount}|${cpuInfo.processorModel}|${osInfo}|$noncePlusOne")
+        val quoteSignature =
+            signData("$jarChallenge|$mrEnclave|${cpuInfo.processorCount}|${cpuInfo.processorModel}|$osInfo|$noncePlusOne")
 
         return RemoteAttestation(
             quote = AttestationQuote(
