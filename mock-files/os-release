@@ -1,0 +1,6 @@
+NAME="Mac OSX Catalina"
+ID=alpine
+VERSION_ID=10.15.7
+PRETTY_NAME="Mac OSX Catalina v10.15.7 (19H2)"
+HOME_URL="http://alpinelinux.org"
+BUG_REPORT_URL="http://bugs.alpinelinux.org"

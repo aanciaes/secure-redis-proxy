@@ -4,8 +4,10 @@ package anciaes.secure.redis.service
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.AttestationChallenge
 import anciaes.secure.redis.model.AttestationQuote
+import anciaes.secure.redis.model.CpuInfo
 import anciaes.secure.redis.model.RedisNodeRemoteAttestation
 import anciaes.secure.redis.model.RemoteAttestation
+import anciaes.secure.redis.model.SystemAttestation
 import anciaes.secure.redis.utils.KeystoreUtils
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -40,9 +42,13 @@ class AttestationServiceImpl : AttestationService {
     val proxyIdentityKeyNamePassword: String
         get() = if (activeProfile == "prod") "Gwb!KMcF37rYHsTmHiLkFs9ms" else "Lcq6jCG-GFhnfqLK4PhyvWFj_"
     val proxyJarChallenge: String
-        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.4.jar" else "mock-files/mock-proxy-java-jar"
+        get() = if (activeProfile == "prod") "/home/secure-proxy-redis/secure-redis-proxy-0.4.1.jar" else "mock-files/mock-proxy-java-jar"
     val proxyMrEnclaveChallenge: String
         get() = if (activeProfile == "prod") "/home/secure-proxy-redis/mrenclave" else "mock-files/mrenclave-mock"
+    val cpuInfoFilePath: String
+        get() = if (activeProfile == "prod") "/proc/cpuinfo" else "mock-files/cpuinfo"
+    val osInfoFilePath: String
+        get() = if (activeProfile == "prod") "/etc/os-release" else "mock-files/os-release"
 
     val attestationSignatureAlgorithm = "SHA512withRSA"
     val attestationSignatureProvider = "SunRsaSign"
@@ -101,13 +107,17 @@ class AttestationServiceImpl : AttestationService {
         val mrEnclave = readMrEnclave(proxyMrEnclaveChallenge)
         val mrEnclaveChallenge = AttestationChallenge(proxyMrEnclaveChallenge, mrEnclave)
 
+        val cpuInfo = getCpuInfo()
+        val osInfo = getOsInfo()
+
         val noncePlusOne = nonce.toInt() + 1
-        val quoteSignature = signData("$jarChallenge|$mrEnclave|$noncePlusOne")
+        val quoteSignature = signData("$jarChallenge|$mrEnclave|${cpuInfo.processorCount}|${cpuInfo.processorModel}|${osInfo}|$noncePlusOne")
 
         return RemoteAttestation(
             quote = AttestationQuote(
                 listOf(jarChallenge, mrEnclaveChallenge),
                 noncePlusOne,
+                SystemAttestation(cpuInfo.processorCount, cpuInfo.processorModel, osInfo),
                 quoteSignature
             )
         )
@@ -132,6 +142,22 @@ class AttestationServiceImpl : AttestationService {
     private fun readMrEnclave(filePath: String): String {
         val file = File(filePath)
         return file.readText()
+    }
+
+    private fun getCpuInfo(): CpuInfo {
+        val processorCount = Runtime.getRuntime().availableProcessors()
+
+        val cpuInfoFile = File(cpuInfoFilePath).readLines()
+        val processorModelLine = cpuInfoFile.find { it.startsWith("model name") }!!
+        val processorModel = processorModelLine.split(":").last().trim()
+
+        return CpuInfo(processorCount, processorModel)
+    }
+
+    private fun getOsInfo(): String {
+        val osInfoFile = File(osInfoFilePath).readLines()
+        val osInfoLine = osInfoFile.find { it.startsWith("PRETTY_NAME") }!!
+        return osInfoLine.split("=").last().replace("\"", "").trim()
     }
 
     private fun signData(data: String): String {
