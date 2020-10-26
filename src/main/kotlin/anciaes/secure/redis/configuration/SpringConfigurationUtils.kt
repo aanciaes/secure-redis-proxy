@@ -1,4 +1,4 @@
-package anciaes.secure.redis.utils
+package anciaes.secure.redis.configuration
 
 import anciaes.secure.redis.model.ReplicationMode
 import anciaes.secure.redis.service.RedisClusterImpl
@@ -6,6 +6,7 @@ import anciaes.secure.redis.service.RedisService
 import anciaes.secure.redis.service.RedisServiceImpl
 import anciaes.secure.redis.service.SecureRedisClusterImpl
 import anciaes.secure.redis.service.SecureRedisServiceImpl
+import anciaes.secure.redis.utils.ConfigurationUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean

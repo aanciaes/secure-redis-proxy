@@ -9,6 +9,7 @@ import anciaes.secure.redis.model.RedisNodeRemoteAttestation
 import anciaes.secure.redis.model.RemoteAttestation
 import anciaes.secure.redis.model.SystemAttestation
 import anciaes.secure.redis.utils.KeystoreUtils
+import anciaes.secure.redis.utils.toHexString
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import khttp.get
@@ -181,14 +182,5 @@ class AttestationServiceImpl : AttestationService {
         val sigBytes: ByteArray = signature.sign()
 
         return Base64.getEncoder().encodeToString(sigBytes)
-    }
-
-    private fun ByteArray.toHexString(): String {
-        val sb = StringBuilder()
-        this.forEach { b ->
-            sb.append(String.format("%02X", b))
-        }
-
-        return sb.toString().toLowerCase()
     }
 }
