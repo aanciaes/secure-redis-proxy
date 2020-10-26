@@ -12,7 +12,7 @@ import anciaes.secure.redis.model.SetResponse
 import anciaes.secure.redis.model.ZAddCommand
 import anciaes.secure.redis.model.ZAddResponse
 import anciaes.secure.redis.model.ZRangeResponse
-import anciaes.secure.redis.service.RedisService
+import anciaes.secure.redis.service.redis.RedisService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable

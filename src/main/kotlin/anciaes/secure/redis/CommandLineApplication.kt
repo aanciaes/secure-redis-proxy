@@ -2,10 +2,10 @@ package anciaes.secure.redis
 
 import anciaes.secure.redis.model.ReplicationMode
 import anciaes.secure.redis.service.redis.RedisClusterImpl
-import anciaes.secure.redis.service.RedisService
-import anciaes.secure.redis.service.RedisServiceImpl
+import anciaes.secure.redis.service.redis.RedisService
+import anciaes.secure.redis.service.redis.RedisServiceImpl
 import anciaes.secure.redis.service.redis.SecureRedisClusterImpl
-import anciaes.secure.redis.service.SecureRedisServiceImpl
+import anciaes.secure.redis.service.redis.SecureRedisServiceImpl
 import anciaes.secure.redis.utils.ConfigurationUtils
 import java.util.concurrent.TimeUnit
 
