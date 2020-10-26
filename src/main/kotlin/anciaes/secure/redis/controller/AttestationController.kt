@@ -2,7 +2,7 @@ package anciaes.secure.redis.controller
 
 /* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationAttestation
-import anciaes.secure.redis.service.AttestationService
+import anciaes.secure.redis.service.attestation.AttestationService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod

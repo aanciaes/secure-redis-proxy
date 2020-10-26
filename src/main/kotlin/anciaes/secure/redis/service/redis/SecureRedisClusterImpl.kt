@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service
+package anciaes.secure.redis.service.redis
 
 /* ktlint-disable */
 import anciaes.secure.redis.exceptions.BrokenSecurityException

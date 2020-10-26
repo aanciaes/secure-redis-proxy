@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service
+package anciaes.secure.redis.service.attestation
 
 /* ktlint-disable */
 import anciaes.secure.redis.model.ApplicationProperties

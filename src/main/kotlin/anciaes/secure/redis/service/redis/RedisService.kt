@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service
+package anciaes.secure.redis.service.redis
 
 import anciaes.secure.redis.model.ZRangeTuple
 import java.util.concurrent.TimeUnit

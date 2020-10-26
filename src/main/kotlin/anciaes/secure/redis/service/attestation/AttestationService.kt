@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service
+package anciaes.secure.redis.service.attestation
 
 import anciaes.secure.redis.model.RedisNodeRemoteAttestation
 import anciaes.secure.redis.model.RemoteAttestation
