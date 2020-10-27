@@ -1,9 +1,12 @@
-package anciaes.secure.redis.service.redis
+package anciaes.secure.redis.service.redis.secure
 
 /* ktlint-disable */
+import anciaes.secure.redis.exceptions.KeyNotFoundException
+import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.RedisResponses
 import anciaes.secure.redis.model.ZRangeTuple
+import anciaes.secure.redis.service.redis.RedisService
 import anciaes.secure.redis.utils.SSLUtils
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.params.SetParams
@@ -63,6 +66,13 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
     override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
         val res = jedis.zrangeByScoreWithScores(key, min, max)
         return res.map { ZRangeTuple(it.element, it.score) }
+    }
+
+    override fun sum(key: String, value: Long): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong + value).toString())
     }
 
     override fun flushAll(): String {

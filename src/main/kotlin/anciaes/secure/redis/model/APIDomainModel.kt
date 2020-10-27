@@ -14,7 +14,8 @@ data class SetCommand(
     val key: String,
     val value: String,
     val expiration: Long?,
-    val expTimeUnit: String?
+    val expTimeUnit: String?,
+    val arithmetic: Boolean = false
 )
 
 data class ZAddCommand(

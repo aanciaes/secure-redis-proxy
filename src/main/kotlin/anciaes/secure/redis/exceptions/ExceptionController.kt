@@ -14,6 +14,7 @@ class ZScoreInsertException(message: String?) : RuntimeException(message)
 class FunctionNotImplementedException(message: String?) : RuntimeException(message)
 class BrokenSecurityException(message: String?) : RuntimeException(message)
 class UnexpectedException(message: String?) : RuntimeException(message)
+class ValueWronglyFormatted(message: String?) : RuntimeException(message)
 
 @RestControllerAdvice
 internal class GlobalDefaultExceptionHandler {
@@ -45,6 +46,12 @@ internal class GlobalDefaultExceptionHandler {
     @ExceptionHandler(value = [BrokenSecurityException::class])
     fun brokenSecurityException(res: HttpServletResponse, e: Exception): ErrorResponse {
         res.status = HttpStatus.INTERNAL_SERVER_ERROR.value()
+        return ErrorResponse(res.status, e.message)
+    }
+
+    @ExceptionHandler(value = [ValueWronglyFormatted::class])
+    fun valueWronglyFormatted(res: HttpServletResponse, e: Exception): ErrorResponse {
+        res.status = HttpStatus.BAD_REQUEST.value()
         return ErrorResponse(res.status, e.message)
     }
 

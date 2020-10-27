@@ -1,8 +1,8 @@
 package anciaes.secure.redis.controller
 
-/* ktlint-disable */
 import anciaes.secure.redis.exceptions.KeyNotFoundException
 import anciaes.secure.redis.exceptions.UnexpectedException
+import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.exceptions.ZScoreFormatException
 import anciaes.secure.redis.exceptions.ZScoreInsertException
 import anciaes.secure.redis.model.GetResponse
@@ -13,6 +13,8 @@ import anciaes.secure.redis.model.ZAddCommand
 import anciaes.secure.redis.model.ZAddResponse
 import anciaes.secure.redis.model.ZRangeResponse
 import anciaes.secure.redis.service.redis.RedisService
+import java.util.concurrent.TimeUnit
+import javax.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,10 +23,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.util.concurrent.TimeUnit
-import javax.servlet.http.HttpServletResponse
-
-/* ktlint-enable */
 
 @RestController
 @RequestMapping(path = ["/redis"])
@@ -110,6 +108,16 @@ class RedisController {
         }
 
         return ZRangeResponse(key, redisService.zrangeByScore(key, min, max))
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/sum"])
+    fun sum(
+        @PathVariable key: String,
+        @RequestParam(required = true) sum: String
+    ): String {
+        val valueLong = sum.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return redisService.sum(key, valueLong)
     }
 
     @RequestMapping(method = [RequestMethod.DELETE], path = ["", "/"])

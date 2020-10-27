@@ -1,11 +1,11 @@
 package anciaes.secure.redis.configuration
 
 import anciaes.secure.redis.model.ReplicationMode
-import anciaes.secure.redis.service.redis.RedisClusterImpl
 import anciaes.secure.redis.service.redis.RedisService
-import anciaes.secure.redis.service.redis.RedisServiceImpl
-import anciaes.secure.redis.service.redis.SecureRedisClusterImpl
-import anciaes.secure.redis.service.redis.SecureRedisServiceImpl
+import anciaes.secure.redis.service.redis.secure.RedisClusterImpl
+import anciaes.secure.redis.service.redis.secure.RedisServiceImpl
+import anciaes.secure.redis.service.redis.unsecure.SecureRedisClusterImpl
+import anciaes.secure.redis.service.redis.unsecure.SecureRedisServiceImpl
 import anciaes.secure.redis.utils.ConfigurationUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
