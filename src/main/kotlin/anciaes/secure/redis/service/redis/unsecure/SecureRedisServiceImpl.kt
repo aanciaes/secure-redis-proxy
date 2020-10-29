@@ -142,8 +142,8 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val composite = redisLine.split("|")
 
         composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD){
-                throw ValueWronglyFormatted ("Cannot make arithmetic operations with non number values")
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
             }
         }
 
@@ -164,8 +164,8 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val composite = redisLine.split("|")
 
         composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD){
-                throw ValueWronglyFormatted ("Cannot make arithmetic operations with non number values")
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
             }
         }
 
@@ -186,8 +186,8 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val composite = redisLine.split("|")
 
         composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD){
-                throw ValueWronglyFormatted ("Cannot make arithmetic operations with non number values")
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
             }
         }
 
