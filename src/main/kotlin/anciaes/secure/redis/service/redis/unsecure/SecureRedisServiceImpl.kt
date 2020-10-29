@@ -1,24 +1,27 @@
-package anciaes.secure.redis.service.redis
+package anciaes.secure.redis.service.redis.unsecure
 
-/* ktlint-disable */
 import anciaes.secure.redis.exceptions.BrokenSecurityException
+import anciaes.secure.redis.exceptions.KeyNotFoundException
+import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.RedisResponses
+import anciaes.secure.redis.model.SecureValueType
 import anciaes.secure.redis.model.ZRangeTuple
+import anciaes.secure.redis.service.redis.RedisService
 import anciaes.secure.redis.utils.KeystoreUtils
 import anciaes.secure.redis.utils.SSLUtils
+import hlib.hj.mlib.HomoAdd
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
-import redis.clients.jedis.Jedis
-import redis.clients.jedis.params.SetParams
+import hlib.hj.mlib.HomoSearch
 import java.nio.charset.Charset
 import java.security.Signature
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
-
-/* ktlint-enable */
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.params.SetParams
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
@@ -27,8 +30,15 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     // Homo Det Keys
     private val homoDetKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
 
+    // Homo Add Key
+    private val homoAddKey = HomoAdd.keyFromString(props.keyEncryptionAddSecret)
+
     // Homo Ope Int Keys
     val homoOpeKey = HomoOpeInt(props.keyEncryptionOpeSecret)
+
+    // Homo Search Key
+    val homoSearchKey =
+        HomoSearch.keyFromString("rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABC3csJf7Hxw+scRJZiyvTAq")
 
     // Load KeySpecs
     private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(
@@ -37,21 +47,21 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         props.dataEncryptionKeystorePassword!!,
         props.dataEncryptionKeystoreKeyName!!,
         props.dataEncryptionKeystoreKeyPassword!!
-    )!!
+    )
     private val integrityKey = KeystoreUtils.getKeyFromKeyStore(
         props.dataHMacKeystoreType!!,
         props.dataHMacKeystore!!,
         props.dataHMacKeystorePassword!!,
         props.dataHMacKeyName!!,
         props.dataHMacKeyPassword!!
-    )!!
+    )
     private val signingKey = KeystoreUtils.getKeyPairFromKeyStore(
         props.dataSignatureKeystoreType!!,
         props.dataSignatureKeystore!!,
         props.dataSignatureKeystorePassword!!,
         props.dataSignatureKeystoreKeyName!!,
         props.dataSignatureKeystoreKeyPassword!!
-    )!!
+    )
 
     init {
         val redisAuth = props.redisAuthentication
@@ -131,30 +141,126 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         return res.map { ZRangeTuple(getSecureValue(it.element), homoOpeKey.decrypt(it.score.toLong()).toDouble()) }
     }
 
+    override fun sum(key: String, value: Int): String {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val composite = redisLine.split("|")
+
+        composite.first().let {
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            }
+        }
+
+        val secureValueToSum = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+        val secureValue = composite[1].toBigInteger()
+        val secureSum = HomoAdd.sum(secureValue, secureValueToSum, homoAddKey.nsquare)
+
+        val signedValue = signData(secureSum.toString())
+
+        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+        val hash = computeIntegrityHash(compositeValue)
+        return jedis.set(encryptedKey, "$compositeValue|$hash")
+    }
+
+    override fun diff(key: String, value: Int): String {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val composite = redisLine.split("|")
+
+        composite.first().let {
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            }
+        }
+
+        val secureValueToSubtract = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+        val secureValue = composite[1].toBigInteger()
+        val secureSum = HomoAdd.dif(secureValue, secureValueToSubtract, homoAddKey.nsquare)
+
+        val signedValue = signData(secureSum.toString())
+
+        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+        val hash = computeIntegrityHash(compositeValue)
+        return jedis.set(encryptedKey, "$compositeValue|$hash")
+    }
+
+    override fun mult(key: String, value: Int): String {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val composite = redisLine.split("|")
+
+        composite.first().let {
+            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            }
+        }
+
+        val secureValue = composite[1].toBigInteger()
+        val secureSum = HomoAdd.mult(secureValue, value, homoAddKey.nsquare)
+
+        val signedValue = signData(secureSum.toString())
+
+        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+        val hash = computeIntegrityHash(compositeValue)
+        return jedis.set(encryptedKey, "$compositeValue|$hash")
+    }
+
+    override fun sAdd(key: String, vararg values: String): String {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val encryptedValues = values.map {
+            HomoSearch.encrypt(homoSearchKey, it)!!
+        }
+
+        return if (jedis.sadd(
+                encryptedKey,
+                *encryptedValues.toTypedArray()
+            ) > 0
+        ) RedisResponses.OK else RedisResponses.NOK
+    }
+
+    override fun sMembers(key: String, search: String?): List<String> {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val rst = jedis.smembers(encryptedKey)
+
+        val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
+
+        return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
+            .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
+    }
+
     override fun flushAll(): String {
         return jedis.flushAll()
     }
 
     private fun computeSecureValue(value: String): String {
-        val encryptedValue = encryptValue(value)
-        val signedValue = signData(value)
+        val arithmeticValue = value.toBigIntegerOrNull()
+        var valueType = SecureValueType.RND
 
-        val compositeValue = "$encryptedValue|$signedValue"
+        val encryptedValue = if (arithmeticValue == null) {
+            encryptValue(value)
+        } else {
+            valueType = SecureValueType.ADD
+            HomoAdd.encrypt(arithmeticValue, homoAddKey).toString()
+        }
+        val signedValue = signData(encryptedValue)
+
+        val compositeValue = "$valueType|$encryptedValue|$signedValue"
         val hash = computeIntegrityHash(compositeValue)
-        return "$encryptedValue|$signedValue|$hash"
+        return "$compositeValue|$hash"
     }
 
     private fun getSecureValue(secureValue: String): String {
         val composite = secureValue.split("|")
+        val valueType = SecureValueType.valueOf(composite.first())
 
-        val integrityCheck = computeIntegrityHash("${composite[0]}|${composite[1]}")
-        if (integrityCheck != composite[2]) {
+        val integrityCheck = computeIntegrityHash("${composite[0]}|${composite[1]}|${composite[2]}")
+        if (integrityCheck != composite[3]) {
             throw BrokenSecurityException("Integrity Validation Failed... Data was tampered.")
         }
-        val value = decryptValue(composite[0])
 
-        return if (verifySignature(value, composite[1])) {
-            value
+        return if (verifySignature(composite[1], composite[2])) {
+            decryptValue(valueType, composite[1])
         } else {
             throw BrokenSecurityException("Error verifying authenticity...")
         }
@@ -170,14 +276,21 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         return Base64.getEncoder().encodeToString(encryptedBytes)
     }
 
-    private fun decryptValue(cipherText: String): String {
-        val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
+    private fun decryptValue(secureValueType: SecureValueType, cipherText: String): String {
+        return when (secureValueType) {
+            SecureValueType.RND -> {
+                val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
 
-        cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
-        cipher.update(Base64.getDecoder().decode(cipherText))
+                cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
+                cipher.update(Base64.getDecoder().decode(cipherText))
 
-        val encryptedBytes = cipher.doFinal()
-        return String(encryptedBytes)
+                val encryptedBytes = cipher.doFinal()
+                String(encryptedBytes)
+            }
+            SecureValueType.ADD -> {
+                HomoAdd.decrypt(cipherText.toBigInteger(), homoAddKey).toString()
+            }
+        }
     }
 
     private fun signData(data: String): String {

@@ -1,17 +1,20 @@
-package anciaes.secure.redis.service.redis
+package anciaes.secure.redis.service.redis.secure
 
 /* ktlint-disable */
 import anciaes.secure.redis.exceptions.FunctionNotImplementedException
+import anciaes.secure.redis.exceptions.KeyNotFoundException
+import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.model.ApplicationProperties
 import anciaes.secure.redis.model.RedisResponses
 import anciaes.secure.redis.model.ZRangeTuple
+import anciaes.secure.redis.service.redis.RedisService
 import anciaes.secure.redis.utils.SSLUtils
+import java.util.HashSet
+import java.util.concurrent.TimeUnit
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.JedisCluster
 import redis.clients.jedis.params.SetParams
-import java.util.HashSet
-import java.util.concurrent.TimeUnit
 
 /* ktlint-enable */
 
@@ -48,6 +51,40 @@ class RedisClusterImpl(props: ApplicationProperties) : RedisService {
     override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
         val res = jedis.zrangeByScoreWithScores(key, min, max)
         return res.map { ZRangeTuple(it.element, it.score) }
+    }
+
+    override fun sum(key: String, value: Int): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong + value).toString())
+    }
+
+    override fun diff(key: String, value: Int): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong - value).toString())
+    }
+
+    override fun mult(key: String, value: Int): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong * value).toString())
+    }
+
+    override fun sAdd(key: String, vararg values: String): String {
+        return if (jedis.sadd(key, *values) > 0) RedisResponses.OK else RedisResponses.NOK
+    }
+
+    override fun sMembers(key: String, search: String?): List<String> {
+        val rst = jedis.smembers(key)
+
+        return if (search != null) rst.filter { it.contains(search) } else rst.toList()
     }
 
     override fun flushAll(): String {

@@ -174,7 +174,7 @@ class AttestationServiceImpl : AttestationService {
             proxyIdentityKeyKeystorePassword,
             proxyIdentityKeyName,
             proxyIdentityKeyNamePassword
-        )!!
+        )
 
         signature.initSign(signingKey.private)
 

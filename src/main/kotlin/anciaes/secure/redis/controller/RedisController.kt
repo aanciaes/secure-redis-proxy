@@ -1,18 +1,23 @@
 package anciaes.secure.redis.controller
 
-/* ktlint-disable */
 import anciaes.secure.redis.exceptions.KeyNotFoundException
 import anciaes.secure.redis.exceptions.UnexpectedException
+import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.exceptions.ZScoreFormatException
 import anciaes.secure.redis.exceptions.ZScoreInsertException
 import anciaes.secure.redis.model.GetResponse
 import anciaes.secure.redis.model.RedisResponses
+import anciaes.secure.redis.model.SAddCommand
+import anciaes.secure.redis.model.SAddResponse
+import anciaes.secure.redis.model.SMembersResponse
 import anciaes.secure.redis.model.SetCommand
 import anciaes.secure.redis.model.SetResponse
 import anciaes.secure.redis.model.ZAddCommand
 import anciaes.secure.redis.model.ZAddResponse
 import anciaes.secure.redis.model.ZRangeResponse
 import anciaes.secure.redis.service.redis.RedisService
+import java.util.concurrent.TimeUnit
+import javax.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,10 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import java.util.concurrent.TimeUnit
-import javax.servlet.http.HttpServletResponse
-
-/* ktlint-enable */
 
 @RestController
 @RequestMapping(path = ["/redis"])
@@ -110,6 +111,70 @@ class RedisController {
         }
 
         return ZRangeResponse(key, redisService.zrangeByScore(key, min, max))
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/sum"])
+    fun sum(
+        @PathVariable key: String,
+        @RequestParam(required = true) sum: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = sum.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        if (redisService.sum(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/diff"])
+    fun diff(
+        @PathVariable key: String,
+        @RequestParam(required = true) diff: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = diff.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be subtracted should be a number")
+
+        if (redisService.diff(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/mult"])
+    fun mult(
+        @PathVariable key: String,
+        @RequestParam(required = true) mult: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = mult.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be subtracted should be a number")
+
+        if (redisService.mult(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.POST], path = ["/sadd"])
+    fun sAdd(@RequestBody sAddCommand: SAddCommand, response: HttpServletResponse): SAddResponse {
+        if (redisService.sAdd(sAddCommand.key, *sAddCommand.values.toTypedArray()) == RedisResponses.OK) {
+            response.status = 201
+            return SAddResponse(
+                sAddCommand.key,
+                buildLocation(sAddCommand.key, "sadd")
+            )
+        } else {
+            throw UnexpectedException("Error while setting value <${sAddCommand.values.joinToString(",")}> for key <${sAddCommand.key}>")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.GET], path = ["/sadd/{key}"])
+    fun sMembers(@PathVariable key: String, @RequestParam(required = false) search: String?): SMembersResponse {
+        val searchTerm = search?.split(",")?.joinToString(" ")
+        return SMembersResponse(key, redisService.sMembers(key, searchTerm))
     }
 
     @RequestMapping(method = [RequestMethod.DELETE], path = ["", "/"])
