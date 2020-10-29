@@ -9,12 +9,12 @@ import anciaes.secure.redis.model.RedisResponses
 import anciaes.secure.redis.model.ZRangeTuple
 import anciaes.secure.redis.service.redis.RedisService
 import anciaes.secure.redis.utils.SSLUtils
+import java.util.HashSet
+import java.util.concurrent.TimeUnit
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.JedisCluster
 import redis.clients.jedis.params.SetParams
-import java.util.HashSet
-import java.util.concurrent.TimeUnit
 
 /* ktlint-enable */
 
@@ -55,26 +55,29 @@ class RedisClusterImpl(props: ApplicationProperties) : RedisService {
 
     override fun sum(key: String, value: Int): String {
         val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
 
         return jedis.set(key, (oldValueLong + value).toString())
     }
 
     override fun diff(key: String, value: Int): String {
         val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
 
         return jedis.set(key, (oldValueLong - value).toString())
     }
 
     override fun mult(key: String, value: Int): String {
         val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+        val oldValueLong =
+            oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
 
         return jedis.set(key, (oldValueLong * value).toString())
     }
 
-    override fun sAdd (key: String, vararg values: String): String {
+    override fun sAdd(key: String, vararg values: String): String {
         return if (jedis.sadd(key, *values) > 0) RedisResponses.OK else RedisResponses.NOK
     }
 
