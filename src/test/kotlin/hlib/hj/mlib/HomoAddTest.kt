@@ -1,11 +1,9 @@
 package hlib.hj.mlib
 
-/* ktlint-disable */
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import java.math.BigInteger
 import java.util.Random
-/* ktlint-enable */
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class HomoAddTest {
 

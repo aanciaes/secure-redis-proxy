@@ -68,11 +68,25 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
         return res.map { ZRangeTuple(it.element, it.score) }
     }
 
-    override fun sum(key: String, value: Long): String {
+    override fun sum(key: String, value: Int): String {
         val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
         val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
 
         return jedis.set(key, (oldValueLong + value).toString())
+    }
+
+    override fun diff(key: String, value: Int): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong - value).toString())
+    }
+
+    override fun mult(key: String, value: Int): String {
+        val oldValue = jedis.get(key) ?: throw KeyNotFoundException("Value for key <$key> not found")
+        val oldValueLong = oldValue.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+
+        return jedis.set(key, (oldValueLong * value).toString())
     }
 
     override fun flushAll(): String {

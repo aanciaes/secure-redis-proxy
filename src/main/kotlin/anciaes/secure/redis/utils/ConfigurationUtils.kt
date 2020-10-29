@@ -55,6 +55,7 @@ object ConfigurationUtils {
 
             props.getProperty("key.encryption.det.secret"),
             props.getProperty("key.encryption.ope.secret"),
+            props.getProperty("key.encryption.add.secret"),
 
             props.getProperty("data.encryption.ciphersuite"),
             props.getProperty("data.encryption.provider"),

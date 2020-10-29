@@ -113,11 +113,46 @@ class RedisController {
     @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/sum"])
     fun sum(
         @PathVariable key: String,
-        @RequestParam(required = true) sum: String
-    ): String {
-        val valueLong = sum.toLongOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
+        @RequestParam(required = true) sum: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = sum.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be added should be a number")
 
-        return redisService.sum(key, valueLong)
+        if (redisService.sum(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/diff"])
+    fun diff(
+        @PathVariable key: String,
+        @RequestParam(required = true) diff: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = diff.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be subtracted should be a number")
+
+        if (redisService.diff(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.PUT], path = ["/{key}/mult"])
+    fun mult(
+        @PathVariable key: String,
+        @RequestParam(required = true) mult: String,
+        response: HttpServletResponse
+    ) {
+        val valueLong = mult.toIntOrNull() ?: throw ValueWronglyFormatted("Value to be subtracted should be a number")
+
+        if (redisService.mult(key, valueLong) == RedisResponses.OK) {
+            response.status = HttpStatus.NO_CONTENT.value()
+        } else {
+            throw UnexpectedException("Unexpted excpetion while trying to sum")
+        }
     }
 
     @RequestMapping(method = [RequestMethod.DELETE], path = ["", "/"])

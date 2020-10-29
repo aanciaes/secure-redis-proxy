@@ -10,6 +10,10 @@ class RedisResponses {
     }
 }
 
+enum class SecureValueType {
+    RND, ADD
+}
+
 data class SetCommand(
     val key: String,
     val value: String,

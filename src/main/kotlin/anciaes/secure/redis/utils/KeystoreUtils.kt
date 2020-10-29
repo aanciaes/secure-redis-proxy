@@ -10,7 +10,7 @@ import java.security.cert.Certificate
 
 object KeystoreUtils {
 
-    fun getKeyPairFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): KeyPair? {
+    fun getKeyPairFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): KeyPair {
         return try {
             val keyStore = KeyStore.getInstance(keyStoreType)
             val stream = FileInputStream(keyStorePath)
@@ -24,11 +24,11 @@ object KeystoreUtils {
             KeyPair(publicKey, privateKey)
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            throw e
         }
     }
 
-    fun getKeyFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): Key? {
+    fun getKeyFromKeyStore(keyStoreType: String, keyStorePath: String, keyStorePassword: String, keyName: String, keyPassword: String): Key {
         return try {
             val keyStore = KeyStore.getInstance(keyStoreType)
             // Keystore where symmetric keys are stored (type JCEKS)
@@ -37,7 +37,7 @@ object KeystoreUtils {
             keyStore.getKey(keyName, keyPassword.toCharArray())
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
-            null
+            throw e
         }
     }
 }

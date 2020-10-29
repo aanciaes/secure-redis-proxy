@@ -11,9 +11,9 @@ interface RedisService {
     fun zadd(key: String, score: Double, value: String): String
     fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple>
 
-    fun sum(key: String, value: Long): String
-    // TODO: fun dif(key: String, value: Long): String
-    // TODO: fun mult(key: String, value: Long): String
+    fun sum(key: String, value: Int): String
+    fun diff(key: String, value: Int): String
+    fun mult(key: String, value: Int): String
 
     fun flushAll(): String
 }
