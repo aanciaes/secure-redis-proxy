@@ -7,6 +7,9 @@ import anciaes.secure.redis.exceptions.ZScoreFormatException
 import anciaes.secure.redis.exceptions.ZScoreInsertException
 import anciaes.secure.redis.model.GetResponse
 import anciaes.secure.redis.model.RedisResponses
+import anciaes.secure.redis.model.SAddCommand
+import anciaes.secure.redis.model.SAddResponse
+import anciaes.secure.redis.model.SMembersResponse
 import anciaes.secure.redis.model.SetCommand
 import anciaes.secure.redis.model.SetResponse
 import anciaes.secure.redis.model.ZAddCommand
@@ -153,6 +156,25 @@ class RedisController {
         } else {
             throw UnexpectedException("Unexpted excpetion while trying to sum")
         }
+    }
+
+    @RequestMapping(method = [RequestMethod.POST], path = ["/sadd"])
+    fun sAdd(@RequestBody sAddCommand: SAddCommand, response: HttpServletResponse): SAddResponse {
+        if (redisService.sAdd(sAddCommand.key, *sAddCommand.values.toTypedArray()) == RedisResponses.OK) {
+            response.status = 201
+            return SAddResponse(
+                sAddCommand.key,
+                buildLocation(sAddCommand.key, "sadd")
+            )
+        } else {
+            throw UnexpectedException("Error while setting value <${sAddCommand.values.joinToString(",")}> for key <${sAddCommand.key}>")
+        }
+    }
+
+    @RequestMapping(method = [RequestMethod.GET], path = ["/sadd/{key}"])
+    fun sMembers(@PathVariable key: String, @RequestParam(required = false) search: String?): SMembersResponse {
+        val searchTerm = search?.split(",")?.joinToString(" ")
+        return SMembersResponse(key, redisService.sMembers(key, searchTerm))
     }
 
     @RequestMapping(method = [RequestMethod.DELETE], path = ["", "/"])

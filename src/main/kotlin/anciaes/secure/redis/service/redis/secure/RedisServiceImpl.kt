@@ -89,6 +89,16 @@ class RedisServiceImpl(props: ApplicationProperties) : RedisService {
         return jedis.set(key, (oldValueLong * value).toString())
     }
 
+    override fun sAdd (key: String, vararg values: String): String {
+        return if (jedis.sadd(key, *values) > 0) RedisResponses.OK else RedisResponses.NOK
+    }
+
+    override fun sMembers(key: String, search: String?): List<String> {
+        val rst = jedis.smembers(key)
+
+        return if (search != null) rst.filter { it.contains(search) } else rst.toList()
+    }
+
     override fun flushAll(): String {
         return jedis.flushAll()
     }

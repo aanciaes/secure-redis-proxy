@@ -28,6 +28,11 @@ data class ZAddCommand(
     val value: String
 )
 
+data class SAddCommand(
+    val key: String,
+    val values: List<String>
+)
+
 data class ErrorResponse(val status: Int, val message: String?)
 
 data class SetResponse(
@@ -45,3 +50,13 @@ data class ZAddResponse(val key: String, val score: String, val valueAdded: Stri
 data class ZRangeResponse(val key: String, val values: List<ZRangeTuple>)
 
 data class ZRangeTuple(val value: String, val score: Double)
+
+data class SAddResponse(
+    val key: String,
+    val location: String
+)
+
+data class SMembersResponse(
+    val key: String,
+    val values: List<String>
+)

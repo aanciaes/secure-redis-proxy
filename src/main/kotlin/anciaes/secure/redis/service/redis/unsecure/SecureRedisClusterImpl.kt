@@ -14,6 +14,7 @@ import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoAdd
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
+import hlib.hj.mlib.HomoSearch
 import java.nio.charset.Charset
 import java.security.Signature
 import java.util.Base64
@@ -38,6 +39,10 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     // Homo Ope Int Keys
     val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
+
+    // Homo Search Key
+    val homoSearchKey =
+        HomoSearch.keyFromString("rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABC3csJf7Hxw+scRJZiyvTAq")
 
     // Load KeySpecs
     private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(
@@ -184,6 +189,29 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
         val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
         val hash = computeIntegrityHash(compositeValue)
         return jedis.set(encryptedKey, "$compositeValue|$hash")
+    }
+
+    override fun sAdd(key: String, vararg values: String): String {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val encryptedValues = values.map {
+            HomoSearch.encrypt(homoSearchKey, it)!!
+        }
+
+        return if (jedis.sadd(
+                encryptedKey,
+                *encryptedValues.toTypedArray()
+            ) > 0
+        ) RedisResponses.OK else RedisResponses.NOK
+    }
+
+    override fun sMembers(key: String, search: String?): List<String> {
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val rst = jedis.smembers(encryptedKey)
+
+        val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
+
+        return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
+            .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
     }
 
     override fun flushAll(): String {
