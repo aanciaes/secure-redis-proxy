@@ -1,0 +1,18 @@
+1. Create CAS client keys:
+
+openssl req -x509 -newkey rsa:4096 -out cas-client.crt -keyout cas-client-key.key \
+      -days 31 -nodes -sha256 \
+      -subj "/C=US/ST=Dresden/L=Saxony/O=Scontain/OU=Org/CN=www.scontain.com" \
+      -reqexts SAN -extensions SAN \
+      -config <(cat /etc/ssl/openssl.cnf <(printf '[SAN]\nsubjectAltName=DNS:www.scontain.com'))
+
+2. Create/Update CAS session
+
+curl -k -s --cert keys/cas-client.crt --key keys/cas-client-key.key --data-binary @secure-redis-container-proxy.yml -X POST https://4-2-1.scone-cas.cf:8081/session
+
+Get session: 
+curl -k -s --cert keys/cas-client.crt --key keys/cas-client-key.key -X GET https://4-2-1.scone-cas.cf:8081/session/secure-redis-container
+
+3. Start LAS
+
+sudo docker run --rm -p 18766:18766 --device=/dev/isgx -d --name aanciaes-las sconecuratedimages/kubernetes:las-scone4.2.1

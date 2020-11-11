@@ -1,0 +1,105 @@
+name: secure-redis-proxy
+version: "0.3"
+
+# Current Session Hash -
+# Replace predecessor bellow with current hash when updating the session 
+predecessor: ~
+
+access_policy:
+  read:
+   - CREATOR
+  update:
+   - CREATOR
+
+services:
+  - name: proxy
+    image_name: proxy_image
+    mrenclaves: [792233b7ef44a0e7a985f561f596a1ce449bf9150e4863e2cc29dc0653829450]
+    command: "java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=prod /home/secure-proxy-redis/secure-redis-proxy-1.0.0.jar"
+    
+images:
+  #Proxy Image
+  - name: proxy_image
+    injection_files:
+      - path: /usr/local/etc/redis/redis.key
+        content: |
+          $$SCONE::redis_tls.key$$
+      - path: /usr/local/etc/redis/redis.crt
+        content: |
+          $$SCONE::redis_tls.crt$$
+      - path: /home/redis/mrenclave
+          content: |
+            $$SCONE::redis_mr_enclave_secret$$
+
+secrets:
+  # Proxy Secrets
+  - name: proxy_mr_enclave_secret
+    kind: ascii
+    value: a0bd510c2fce258135377f7d6869600d45c37d6658c43622ec4a2b6344bbd06d
+  - name: attestation-identity-key-private
+    kind: private-key
+    value: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQDaOqyOmK0xrBan
+      nz6VaKZ+Cqve4UYabfMcC83lasvlf94QcCMx3J2qMehze3BywWfzEdwKlJrEd0ze
+      Evrinhf/h4RfQWz+bdu0WPxESbQD8VCAebx7+WEaEB5QmBimNTCnRJlGZyUPEdBR
+      Xfh5QE4H0Z6PtptbhK4aygrAS764cbOuksLU5NqM+Quw+YQtdy+WPF7TUaJZ1p37
+      Ri1EV3QNMU64pGfiQibRMxHwdQWq7GP5fx9L6UIPow5ldjfBaKQ8yaU8oFPZ50IJ
+      AW7jkVJtR7yo5Jx19/pXKD8lZRUgIJVnpPzEFny9qSMaE7EhNP6HJrRHqNfkwQYl
+      74bz6BmBAgMBAAECggEBAIxrmMEgqMD/lIxDQYfuEMOlpjYCCpPTD82KIvBuKckA
+      4Cj/nwXkiWcMOiCk2xRcMsELSuVb/cJRaZqz58+OHq8Dyj9o3/NPSUHgyGJAcp7e
+      1gf1TT0QmFSm7nq5g5LfQvE+iMnucMAjnEHfD5UltY/+Z+Ldg1X+J/GA9C4MDyqq
+      fk4hsdUhv0MK5aIvuCZjpUwurV2BVZn233psZ9PwNk6GWhKv2QsDSBcREcj13E7T
+      d9U3Mgif/Hj2pB6sHMt2z06PYeDQTi3j0z1TDr6ZRVUUF6A62mL+ap82Ol8U5MAt
+      eBBdNapnFoSYqlfDCh0RL9EgG8wtJhZTwdXm+NfCfOECgYEA+0YVH/FUXSYVgsJl
+      /8e0DlDVvOtD22ubdTo5gLd9EMlyxv4/En7iFDMCIrrBPRF9uPBFTaYJjktRdUzr
+      deIaVD0rH863C9tg8w9o24MXBQ8EXl3XXzJ//Gox7yHQXKaZfkGiZpFDtq1xs+MG
+      YU+i2TGsAQa4oAj9gysfR/+FFk0CgYEA3lV6OYuzPGeRWJpU2o0/QLGkG1SwseTX
+      zEQEzg7mDdiLYAgjJAEQoBMRl6urbDMbQ+phcM9MyRGzagcwzi+o3rlEpf2/nkgQ
+      jhQimRK/s9bE9eygK4OLuVE1Pl1bwSY2aOjC8RENwC09Qa61ZawhmjqP+nX6ZBrK
+      UmqeOzLSUgUCgYEA70L4coYVUu0kpnH9NeUu6kLGgzFyV8jLKoDaqFoP2KA5jooh
+      /LadB6babb9uqXuyPxtqollr1/aYBh3MR1+YuoXUPmFToxKt6kPOENduX/7Apiqt
+      HZS0keF80rtb8B0jIznULd48oAHftu6B8L8nzbCinAeOXbSx0OiKzL/eNjECgYEA
+      sL+7Puw0PR0IiyuFsYkAc+nE0IVvQrzuYVDhkP5/HRq9EkblyMWf9eGy5qRuzsGC
+      N2eotwnVvTL5Mp0sy31P/l/Cl0M2hho8LvcK2i3xgIKIagkG/BDDjztj3IRTYSWD
+      s7r23rXz/Ib6X7EIPB+vRvCvbSlFOTejCAoCaIVqdhECgYEAhmqlAnw/6VnlmGcq
+      l18QdHefbINZi0QagJ38Kb631p42+psG0D0rCcWKf297/3R5u/20weTIc0RdoxVt
+      V572v0u+ncCetFxIYprp+dGhm4nTeVZSd9YosO/inmZ2Cqx0vJGLo9oDAzLmpBq7
+      hqWZLxV0xAHpTQM19zO5cetHr9c=
+      -----END PRIVATE KEY-----
+
+  - name: attestation-identity-key
+    kind: x509
+    private_key: attestation-identity-key-private
+    value: |
+      -----BEGIN CERTIFICATE-----
+      MIIEWjCCA0KgAwIBAgIJANTN/2YCO2QwMA0GCSqGSIb3DQEBCwUAMIHIMQswCQYD
+      VQQGEwJQVDEPMA0GA1UEBwwGTGlzYm9uMS0wKwYDVQQKDCRBbmNpYWVzIFRoZXNp
+      cyBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkxHjAcBgNVBAsMFUFuY2lhZXMgSVQgRGVw
+      YXJ0bWVudDEtMCsGA1UEAwwkQW5jaWFlcyBUaGVzaXMgQ2VydGlmaWNhdGUgQXV0
+      aG9yaXR5MSowKAYJKoZIhvcNAQkBFhttLmFuY2lhZXNAY2FtcHVzLmZjdC51bmwu
+      cHQwHhcNMjAwOTMwMjE0MTIwWhcNMjEwOTMwMjE0MTIwWjCBuDELMAkGA1UEBhMC
+      UFQxETAPBgNVBAgMCFBvcnR1Z2FsMQ8wDQYDVQQHDAZMaXNib24xLjAsBgNVBAoM
+      JVRoZXNpcyBQcm94eSBBdHRlc3RhdGlvbiBJZGVudGl0eSBLZXkxKjAoBgkqhkiG
+      9w0BCQEWG20uYW5jaWFlc0BjYW1wdXMuZmN0LnVubC5wdDEpMCcGA1UEAwwgcmVk
+      aXMtcHJveHkudGhlc2lzLXNlcnZlci50aGVzaXMwggEiMA0GCSqGSIb3DQEBAQUA
+      A4IBDwAwggEKAoIBAQDaOqyOmK0xrBannz6VaKZ+Cqve4UYabfMcC83lasvlf94Q
+      cCMx3J2qMehze3BywWfzEdwKlJrEd0zeEvrinhf/h4RfQWz+bdu0WPxESbQD8VCA
+      ebx7+WEaEB5QmBimNTCnRJlGZyUPEdBRXfh5QE4H0Z6PtptbhK4aygrAS764cbOu
+      ksLU5NqM+Quw+YQtdy+WPF7TUaJZ1p37Ri1EV3QNMU64pGfiQibRMxHwdQWq7GP5
+      fx9L6UIPow5ldjfBaKQ8yaU8oFPZ50IJAW7jkVJtR7yo5Jx19/pXKD8lZRUgIJVn
+      pPzEFny9qSMaE7EhNP6HJrRHqNfkwQYl74bz6BmBAgMBAAGjVTBTMFEGA1UdEQRK
+      MEiCIHJlZGlzLXByb3h5LnRoZXNpcy1zZXJ2ZXIudGhlc2lzgglsb2NhbGhvc3SC
+      GW5zMzEyNDkyNDMuaXAtNTEtMjEwLTAuZXUwDQYJKoZIhvcNAQELBQADggEBACFW
+      pwwRtJlF97pfjQ7z3PPNv1AKdmxzU3XxoS3KV2JONL489D4YoRoXz9JucB5LosVU
+      dphtQNLZZMWCu88FlPghANW8JHAbvQmF3+ZKDluMuAgDc0y/qjL6q5wODCG+OzFP
+      ZCA3dBZeHpWJqOhCZG8XZAhHTu1GJMnxnsQcLibSIyk2Xln9m6NSjxMG8vLna2b0
+      j5yYl6hq4jZJukxqL9VL7JtC+pf2O6gSrQXm+2Nlg2FrDDeBdu6DHMmfkdJV8OZH
+      OVVd5C1qzaqEJDMXxKQngY02mMEDebwE+3mjZC89ow0vpqnxdfWxnrqx12bHlfmc
+      Bb93rWWW4yUr04SUXaA=
+      -----END CERTIFICATE-----
+
+security:
+  attestation:
+    tolerate: [debug-mode, outdated-tcb]
+    ignore_advisories: ["INTEL-SA-00220", "INTEL-SA-00270", "INTEL-SA-00293", "INTEL-SA-00320", "INTEL-SA-00329"]
