@@ -41,8 +41,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
     val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
 
     // Homo Search Key
-    val homoSearchKey =
-        HomoSearch.keyFromString("rO0ABXNyAB9qYXZheC5jcnlwdG8uc3BlYy5TZWNyZXRLZXlTcGVjW0cLZuIwYU0CAAJMAAlhbGdvcml0aG10ABJMamF2YS9sYW5nL1N0cmluZztbAANrZXl0AAJbQnhwdAADQUVTdXIAAltCrPMX+AYIVOACAAB4cAAAABC3csJf7Hxw+scRJZiyvTAq")
+    val homoSearchKey = HomoSearch.keyFromString(props.keyEncryptionSearchSecret)
 
     // Load KeySpecs
     private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(

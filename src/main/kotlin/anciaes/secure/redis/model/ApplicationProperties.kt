@@ -30,6 +30,7 @@ data class ApplicationProperties(
     val keyEncryptionDetSecret: String?,
     val keyEncryptionOpeSecret: String?,
     val keyEncryptionAddSecret: String?,
+    val keyEncryptionSearchSecret: String?,
 
     val dataEncryptionCipherSuite: String?,
     val dataEncryptionProvider: String?,
