@@ -8,8 +8,8 @@ import anciaes.secure.redis.model.RedisResponses
 import anciaes.secure.redis.model.SecureValueType
 import anciaes.secure.redis.model.ZRangeTuple
 import anciaes.secure.redis.service.redis.RedisService
+import anciaes.secure.redis.utils.JedisPoolConstructors
 import anciaes.secure.redis.utils.KeystoreUtils
-import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoAdd
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import redis.clients.jedis.JedisPool
-import redis.clients.jedis.JedisPoolConfig
 import redis.clients.jedis.params.SetParams
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
@@ -64,22 +63,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     )
 
     init {
-        val redisAuth = props.redisAuthentication
-        val username = props.redisUsername
-        val password = props.redisPassword
-
         jedisPool.resource.use { jedis ->
-            if (redisAuth) {
-                if (!password.isNullOrBlank()) {
-                    // Backwards compatibility. For older Redis versions that do not support ACL
-                    if (username.isNullOrBlank()) {
-                        jedis.auth(password)
-                    } else {
-                        jedis.auth(username, password)
-                    }
-                }
-            }
-
             if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
         }
     }
@@ -354,6 +338,9 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
     }
 
     private fun buildJedisClient(applicationProperties: ApplicationProperties): JedisPool {
+        val redisAuth = applicationProperties.redisAuthentication
+        val username = applicationProperties.redisUsername
+        val password = applicationProperties.redisPassword
 
         return if (applicationProperties.tlsEnabled) {
             val clientKeyStore = applicationProperties.tlsKeystorePath
@@ -365,22 +352,45 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
                 throw RuntimeException("There are missing TLS configurations. Check application.conf file")
             }
 
-            JedisPool(
-                JedisPoolConfig(),
-                applicationProperties.redisHost,
-                applicationProperties.redisPort,
-                true,
-                SSLUtils.getSSLContext(
+            if (redisAuth && !password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    JedisPoolConstructors.buildTLSJedisPoolAuthenticatedLegacy(
+                        applicationProperties,
+                        clientKeyStore,
+                        clientKeyStorePassword,
+                        clientTrustStore,
+                        clientTrustStorePassword
+                    )
+                } else {
+                    JedisPoolConstructors.buildTLSJedisPoolAuthenticated(
+                        applicationProperties,
+                        clientKeyStore,
+                        clientKeyStorePassword,
+                        clientTrustStore,
+                        clientTrustStorePassword
+                    )
+                }
+            } else {
+                JedisPoolConstructors.buildTLSJedisPool(
+                    applicationProperties,
                     clientKeyStore,
                     clientKeyStorePassword,
                     clientTrustStore,
                     clientTrustStorePassword
-                ),
-                null,
-                null
-            )
+                )
+            }
         } else {
-            JedisPool(JedisPoolConfig(), applicationProperties.redisHost, applicationProperties.redisPort)
+            return if (redisAuth && !password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    JedisPoolConstructors.buildInsecureJedisPoolAuthenticatedLegacy(applicationProperties)
+                } else {
+                    JedisPoolConstructors.buildInsecureJedisPoolAuthenticated(applicationProperties)
+                }
+            } else {
+                JedisPoolConstructors.buildInsecureJedisPool(applicationProperties)
+            }
         }
     }
 }
