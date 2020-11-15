@@ -22,7 +22,11 @@ WORKDIR /home/secure-proxy-redis
 COPY --from=builder /home/gradle/project/build/libs/secure-redis-proxy-1.1.0.jar .
 COPY --from=builder /home/gradle/project/src/main/resources/spring-application.yml .
 
-COPY ./keystores/ ./keystores
+# Copy Keys and Certificates to Container
+# TLS and Attestation Signing Keys are fecthed from CAS
+COPY ./production-keystores ./production-keystores
 
-# Run jar
-CMD java -jar -Dspring.config.location=spring-application.yml ./secure-redis-proxy-1.1.0.jar
+# Set production profile
+ENV spring_profile prod
+
+CMD java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=${spring_profile} /home/secure-proxy-redis/secure-redis-proxy-1.1.0.jar

@@ -15,7 +15,7 @@ services:
   - name: proxy
     image_name: proxy_image
     mrenclaves: [2d0a8555df60d260819862887c2aead6c0380e82e40ec49f5a254d33185ef8d7]
-    command: "java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=prod /home/secure-proxy-redis/secure-redis-proxy-1.0.0.jar"
+    command: "java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=prod /home/secure-proxy-redis/secure-redis-proxy-1.1.0.jar"
     pwd: /home/secure-proxy-redis
     environment:
       LD_LIBRARY_PATH: "/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/server:/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64:/usr/lib/jvm/java-1.8-openjdk/jre/../lib/amd64"

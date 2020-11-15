@@ -63,8 +63,9 @@ If image is ready for production, build the prod tag and push:
 
 **Notes:**
 
-1. The deployment on the cloud provider should be done by uploading the production image to the docker hub registry and pull from there to avoid any losses.
-2. Be aware of the redis ports with the docker run command as they may change in the `spring-application.yml` configuration file.
+1. To build project for No SGX run: `docker build -f prod-no-sgx.Dockerfile -t aanciaes/secure-redis-proxy:latest .`
+2. The deployment on the cloud provider should be done by uploading the production image to the docker hub registry and pull from there to avoid any losses.
+3. Be aware of the redis ports with the docker run command as they may change in the `spring-application.yml` configuration file.
 
 ### Deploy Authentication Server to Production
 
