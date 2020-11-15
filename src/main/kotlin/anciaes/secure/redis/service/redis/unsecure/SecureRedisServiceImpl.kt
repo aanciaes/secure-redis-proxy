@@ -20,12 +20,13 @@ import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
-import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
+import redis.clients.jedis.JedisPoolConfig
 import redis.clients.jedis.params.SetParams
 
 class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
-    private val jedis: Jedis = buildJedisClient(props)
+    private val jedisPool: JedisPool = buildJedisClient(props)
 
     // Homo Det Keys
     private val homoDetKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
@@ -67,48 +68,56 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val username = props.redisUsername
         val password = props.redisPassword
 
-        if (redisAuth) {
-            if (!password.isNullOrBlank()) {
-                // Backwards compatibility. For older Redis versions that do not support ACL
-                if (username.isNullOrBlank()) {
-                    jedis.auth(password)
-                } else {
-                    jedis.auth(username, password)
+        jedisPool.resource.use { jedis ->
+            if (redisAuth) {
+                if (!password.isNullOrBlank()) {
+                    // Backwards compatibility. For older Redis versions that do not support ACL
+                    if (username.isNullOrBlank()) {
+                        jedis.auth(password)
+                    } else {
+                        jedis.auth(username, password)
+                    }
                 }
             }
-        }
 
-        if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
+            if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
+        }
     }
 
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         val secureValue = computeSecureValue(value)
 
-        return if (expiration != null) {
-            val expirationParams = SetParams()
-            when (timeUnit) {
-                TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
-                else -> expirationParams.ex(expiration.toInt())
-            }
+        jedisPool.resource.use { jedis ->
+            return if (expiration != null) {
+                val expirationParams = SetParams()
+                when (timeUnit) {
+                    TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
+                    else -> expirationParams.ex(expiration.toInt())
+                }
 
-            jedis.set(encryptedKey, secureValue, expirationParams)
-        } else {
-            jedis.set(encryptedKey, secureValue)
+                jedis.set(encryptedKey, secureValue, expirationParams)
+            } else {
+                jedis.set(encryptedKey, secureValue)
+            }
         }
     }
 
     override fun get(key: String): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        return when (val value = jedis.get(encryptedKey)) {
-            null -> RedisResponses.NIL
-            else -> getSecureValue(value)
+        jedisPool.resource.use { jedis ->
+            return when (val value = jedis.get(encryptedKey)) {
+                null -> RedisResponses.NIL
+                else -> getSecureValue(value)
+            }
         }
     }
 
     override fun del(key: String): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        return if (jedis.del(encryptedKey) == 1L) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.del(encryptedKey) == 1L) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun zadd(key: String, score: Double, value: String): String {
@@ -118,12 +127,14 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         val encryptedScoreDouble = homoOpeKey.encrypt(scoreInt).toDouble()
 
         val secureValue = computeSecureValue(value)
-        return if (jedis.zadd(
-                encryptedKey,
-                encryptedScoreDouble,
-                secureValue
-            ) == 1L
-        ) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.zadd(
+                    encryptedKey,
+                    encryptedScoreDouble,
+                    secureValue
+                ) == 1L
+            ) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
@@ -136,73 +147,81 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             encryptedMax = homoOpeKey.encrypt(max.toInt()).toString()
         }
 
-        val res = jedis.zrangeByScoreWithScores(encryptedKey, encryptedMin, encryptedMax)
-        return res.map { ZRangeTuple(getSecureValue(it.element), homoOpeKey.decrypt(it.score.toLong()).toDouble()) }
+        jedisPool.resource.use { jedis ->
+            val res = jedis.zrangeByScoreWithScores(encryptedKey, encryptedMin, encryptedMax)
+            return res.map { ZRangeTuple(getSecureValue(it.element), homoOpeKey.decrypt(it.score.toLong()).toDouble()) }
+        }
     }
 
     override fun sum(key: String, value: Int): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValueToSum = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.sum(secureValue, secureValueToSum, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValueToSum = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.sum(secureValue, secureValueToSum, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun diff(key: String, value: Int): String {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValueToSubtract = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.dif(secureValue, secureValueToSubtract, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValueToSubtract = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.dif(secureValue, secureValueToSubtract, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun mult(key: String, value: Int): String {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.mult(secureValue, value, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.mult(secureValue, value, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun sAdd(key: String, vararg values: String): String {
@@ -211,25 +230,31 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
             HomoSearch.encrypt(homoSearchKey, it)!!
         }
 
-        return if (jedis.sadd(
-                encryptedKey,
-                *encryptedValues.toTypedArray()
-            ) > 0
-        ) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.sadd(
+                    encryptedKey,
+                    *encryptedValues.toTypedArray()
+                ) > 0
+            ) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun sMembers(key: String, search: String?): List<String> {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val rst = jedis.smembers(encryptedKey)
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val rst = jedis.smembers(encryptedKey)
 
-        val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
+            val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
 
-        return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
-            .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
+            return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
+                .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
+        }
     }
 
     override fun flushAll(): String {
-        return jedis.flushAll()
+        jedisPool.resource.use { jedis ->
+            return jedis.flushAll()
+        }
     }
 
     private fun computeSecureValue(value: String): String {
@@ -328,7 +353,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
         return Base64.getEncoder().encodeToString(hMac.doFinal())
     }
 
-    private fun buildJedisClient(applicationProperties: ApplicationProperties): Jedis {
+    private fun buildJedisClient(applicationProperties: ApplicationProperties): JedisPool {
 
         return if (applicationProperties.tlsEnabled) {
             val clientKeyStore = applicationProperties.tlsKeystorePath
@@ -340,7 +365,8 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
                 throw RuntimeException("There are missing TLS configurations. Check application.conf file")
             }
 
-            Jedis(
+            JedisPool(
+                JedisPoolConfig(),
                 applicationProperties.redisHost,
                 applicationProperties.redisPort,
                 true,
@@ -354,7 +380,7 @@ class SecureRedisServiceImpl(val props: ApplicationProperties) : RedisService {
                 null
             )
         } else {
-            Jedis(applicationProperties.redisHost, applicationProperties.redisPort)
+            JedisPool(JedisPoolConfig(), applicationProperties.redisHost, applicationProperties.redisPort)
         }
     }
 }
