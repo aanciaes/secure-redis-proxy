@@ -19,7 +19,7 @@ FROM sconecuratedimages/apps:openjdk-8-alpine-scone4.2.1
 WORKDIR /home/secure-proxy-redis
 
 # Copy built jar and config file from builder environment into running environment
-COPY --from=builder /home/gradle/project/build/libs/secure-redis-proxy-1.2.1.jar .
+COPY --from=builder /home/gradle/project/build/libs/secure-redis-proxy-1.3.0.jar .
 COPY --from=builder /home/gradle/project/src/main/resources/spring-application.yml .
 
 # Copy Keys and Certificates to Container

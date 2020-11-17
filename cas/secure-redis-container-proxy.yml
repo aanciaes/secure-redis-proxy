@@ -1,9 +1,9 @@
 name: secure-redis-proxy
 version: "0.3"
 
-# Current Session Hash - 484673a2141573107e20a042d4493d9d1a95d870dc1dab2049a03a21a63a375e
+# Current Session Hash - dbdda4196322e720f35274dcd1a60e9099e5128574bab97f0778944df0ca308b
 # Replace predecessor bellow with current hash when updating the session 
-predecessor: ac5155db032e10a4b3157d1be11bb287fcebe68b13801264246c2520f147f661
+predecessor: b495b8ac1466f37b78c980b06831dffcbc0d30917281c4b4253f98b2dcbb8399
 
 access_policy:
   read:
@@ -15,7 +15,7 @@ services:
   - name: proxy
     image_name: proxy_image
     mrenclaves: [2d0a8555df60d260819862887c2aead6c0380e82e40ec49f5a254d33185ef8d7]
-    command: "java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=prod /home/secure-proxy-redis/secure-redis-proxy-1.2.1.jar"
+    command: "java -jar -Dspring.config.location=spring-application.yml -Dspring.profiles.active=prod /home/secure-proxy-redis/secure-redis-proxy-1.3.0.jar"
     pwd: /home/secure-proxy-redis
     environment:
       LD_LIBRARY_PATH: "/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64/server:/usr/lib/jvm/java-1.8-openjdk/jre/lib/amd64:/usr/lib/jvm/java-1.8-openjdk/jre/../lib/amd64"
@@ -39,7 +39,7 @@ images:
 secrets:
   - name: proxy_mr_enclave_secret
     kind: ascii
-    value: 2d0a8555df60d260819862887c2aead6c0380e82e40ec49f5a254d33185ef8d7
+    value: ed5ae8a95e54392ff9e28f20bb7539c639b1a800fe6d75443330a33abc893896
 
   - name: proxy-api-tls-keystore
     kind: binary

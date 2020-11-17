@@ -1,7 +1,6 @@
-package anciaes.secure.redis.service.redis.unsecure
+package anciaes.secure.redis.service.redis.encrypted
 
 import anciaes.secure.redis.exceptions.BrokenSecurityException
-import anciaes.secure.redis.exceptions.FunctionNotImplementedException
 import anciaes.secure.redis.exceptions.KeyNotFoundException
 import anciaes.secure.redis.exceptions.ValueWronglyFormatted
 import anciaes.secure.redis.model.ApplicationProperties
@@ -9,8 +8,8 @@ import anciaes.secure.redis.model.RedisResponses
 import anciaes.secure.redis.model.SecureValueType
 import anciaes.secure.redis.model.ZRangeTuple
 import anciaes.secure.redis.service.redis.RedisService
+import anciaes.secure.redis.utils.JedisPoolConstructors
 import anciaes.secure.redis.utils.KeystoreUtils
-import anciaes.secure.redis.utils.SSLUtils
 import hlib.hj.mlib.HomoAdd
 import hlib.hj.mlib.HomoDet
 import hlib.hj.mlib.HomoOpeInt
@@ -18,18 +17,15 @@ import hlib.hj.mlib.HomoSearch
 import java.nio.charset.Charset
 import java.security.Signature
 import java.util.Base64
-import java.util.HashSet
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig
-import redis.clients.jedis.HostAndPort
-import redis.clients.jedis.JedisCluster
+import redis.clients.jedis.JedisPool
 import redis.clients.jedis.params.SetParams
 
-class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
+class EncryptedRedisServiceImpl(val props: ApplicationProperties) : RedisService {
 
-    private val jedis: JedisCluster = buildJedisClusterClient(props)
+    private val jedisPool: JedisPool = buildJedisClient(props)
 
     // Homo Det Keys
     private val homoDetKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
@@ -38,7 +34,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
     private val homoAddKey = HomoAdd.keyFromString(props.keyEncryptionAddSecret)
 
     // Homo Ope Int Keys
-    val ope = HomoOpeInt(props.keyEncryptionOpeSecret)
+    val homoOpeKey = HomoOpeInt(props.keyEncryptionOpeSecret)
 
     // Homo Search Key
     val homoSearchKey = HomoSearch.keyFromString(props.keyEncryptionSearchSecret)
@@ -66,49 +62,63 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
         props.dataSignatureKeystoreKeyPassword!!
     )
 
+    init {
+        jedisPool.resource.use { jedis ->
+            if (jedis.ping() != "PONG") throw RuntimeException("Redis not ready")
+        }
+    }
+
     override fun set(key: String, value: String, expiration: Long?, timeUnit: TimeUnit?): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
         val secureValue = computeSecureValue(value)
 
-        return if (expiration != null) {
-            val expirationParams = SetParams()
-            when (timeUnit) {
-                TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
-                else -> expirationParams.ex(expiration.toInt())
-            }
+        jedisPool.resource.use { jedis ->
+            return if (expiration != null) {
+                val expirationParams = SetParams()
+                when (timeUnit) {
+                    TimeUnit.MILLISECONDS -> expirationParams.px(expiration)
+                    else -> expirationParams.ex(expiration.toInt())
+                }
 
-            jedis.set(encryptedKey, secureValue, expirationParams)
-        } else {
-            jedis.set(encryptedKey, secureValue)
+                jedis.set(encryptedKey, secureValue, expirationParams)
+            } else {
+                jedis.set(encryptedKey, secureValue)
+            }
         }
     }
 
     override fun get(key: String): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        return when (val value = jedis.get(encryptedKey)) {
-            null -> RedisResponses.NIL
-            else -> getSecureValue(value)
+        jedisPool.resource.use { jedis ->
+            return when (val value = jedis.get(encryptedKey)) {
+                null -> RedisResponses.NIL
+                else -> getSecureValue(value)
+            }
         }
     }
 
     override fun del(key: String): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        return if (jedis.del(encryptedKey) == 1L) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.del(encryptedKey) == 1L) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun zadd(key: String, score: Double, value: String): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
 
         val scoreInt = score.toInt()
-        val encryptedScoreDouble = ope.encrypt(scoreInt).toDouble()
+        val encryptedScoreDouble = homoOpeKey.encrypt(scoreInt).toDouble()
 
         val secureValue = computeSecureValue(value)
-        return if (jedis.zadd(
-                encryptedKey,
-                encryptedScoreDouble,
-                secureValue
-            ) == 1L
-        ) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.zadd(
+                    encryptedKey,
+                    encryptedScoreDouble,
+                    secureValue
+                ) == 1L
+            ) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun zrangeByScore(key: String, min: String, max: String): List<ZRangeTuple> {
@@ -117,77 +127,85 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
         var encryptedMax = "+inf"
 
         if (min != "-inf" && min != "+inf" && min != "inf" && max != "-inf" && max != "+inf" && max != "inf") {
-            encryptedMin = ope.encrypt(min.toInt()).toString()
-            encryptedMax = ope.encrypt(max.toInt()).toString()
+            encryptedMin = homoOpeKey.encrypt(min.toInt()).toString()
+            encryptedMax = homoOpeKey.encrypt(max.toInt()).toString()
         }
 
-        val res = jedis.zrangeByScoreWithScores(encryptedKey, encryptedMin, encryptedMax)
-        return res.map { ZRangeTuple(getSecureValue(it.element), ope.decrypt(it.score.toLong()).toDouble()) }
+        jedisPool.resource.use { jedis ->
+            val res = jedis.zrangeByScoreWithScores(encryptedKey, encryptedMin, encryptedMax)
+            return res.map { ZRangeTuple(getSecureValue(it.element), homoOpeKey.decrypt(it.score.toLong()).toDouble()) }
+        }
     }
 
     override fun sum(key: String, value: Int): String {
         val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValueToSum = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.sum(secureValue, secureValueToSum, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValueToSum = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.sum(secureValue, secureValueToSum, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun diff(key: String, value: Int): String {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValueToSubtract = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.dif(secureValue, secureValueToSubtract, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValueToSubtract = HomoAdd.encrypt(value.toBigInteger(), homoAddKey)
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.dif(secureValue, secureValueToSubtract, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun mult(key: String, value: Int): String {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
-        val composite = redisLine.split("|")
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val redisLine = jedis.get(encryptedKey) ?: throw KeyNotFoundException("Value for key <$key> not found")
+            val composite = redisLine.split("|")
 
-        composite.first().let {
-            if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
-                throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+            composite.first().let {
+                if (SecureValueType.valueOf(it) != SecureValueType.ADD) {
+                    throw ValueWronglyFormatted("Cannot make arithmetic operations with non number values")
+                }
             }
+
+            val secureValue = composite[1].toBigInteger()
+            val secureSum = HomoAdd.mult(secureValue, value, homoAddKey.nsquare)
+
+            val signedValue = signData(secureSum.toString())
+
+            val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
+            val hash = computeIntegrityHash(compositeValue)
+            return jedis.set(encryptedKey, "$compositeValue|$hash")
         }
-
-        val secureValue = composite[1].toBigInteger()
-        val secureSum = HomoAdd.mult(secureValue, value, homoAddKey.nsquare)
-
-        val signedValue = signData(secureSum.toString())
-
-        val compositeValue = "${SecureValueType.ADD}|$secureSum|$signedValue"
-        val hash = computeIntegrityHash(compositeValue)
-        return jedis.set(encryptedKey, "$compositeValue|$hash")
     }
 
     override fun sAdd(key: String, vararg values: String): String {
@@ -196,25 +214,31 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
             HomoSearch.encrypt(homoSearchKey, it)!!
         }
 
-        return if (jedis.sadd(
-                encryptedKey,
-                *encryptedValues.toTypedArray()
-            ) > 0
-        ) RedisResponses.OK else RedisResponses.NOK
+        jedisPool.resource.use { jedis ->
+            return if (jedis.sadd(
+                    encryptedKey,
+                    *encryptedValues.toTypedArray()
+                ) > 0
+            ) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun sMembers(key: String, search: String?): List<String> {
-        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
-        val rst = jedis.smembers(encryptedKey)
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val rst = jedis.smembers(encryptedKey)
 
-        val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
+            val encryptedSearchTerm = HomoSearch.encrypt(homoSearchKey, search)
 
-        return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
-            .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
+            return if (search != null) rst.filter { HomoSearch.searchAll(encryptedSearchTerm, it) }
+                .map { HomoSearch.decrypt(homoSearchKey, it) } else rst.map { HomoSearch.decrypt(homoSearchKey, it) }
+        }
     }
 
     override fun flushAll(): String {
-        throw FunctionNotImplementedException("Error: Flush all for cluster is not supported yet...")
+        jedisPool.resource.use { jedis ->
+            return jedis.flushAll()
+        }
     }
 
     private fun computeSecureValue(value: String): String {
@@ -252,9 +276,10 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
 
     private fun encryptValue(value: String): String {
         val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
-        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
 
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
         cipher.update(value.toByteArray(Charset.defaultCharset()))
+
         val encryptedBytes = cipher.doFinal()
         return Base64.getEncoder().encodeToString(encryptedBytes)
     }
@@ -297,6 +322,7 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
         )
 
         signature.initVerify(signingKey.public)
+
         signature.update(data.toByteArray())
 
         return signature.verify(Base64.getDecoder().decode(signatureString))
@@ -311,11 +337,10 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
         return Base64.getEncoder().encodeToString(hMac.doFinal())
     }
 
-    private fun buildJedisClusterClient(applicationProperties: ApplicationProperties): JedisCluster {
-        val jedisClusterNodes: MutableSet<HostAndPort> = HashSet()
-        applicationProperties.replicationNodes!!.forEach {
-            jedisClusterNodes.add(HostAndPort.parseString("${it.host}:${it.port}"))
-        }
+    private fun buildJedisClient(applicationProperties: ApplicationProperties): JedisPool {
+        val redisAuth = applicationProperties.redisAuthentication
+        val username = applicationProperties.redisUsername
+        val password = applicationProperties.redisPassword
 
         return if (applicationProperties.tlsEnabled) {
             val clientKeyStore = applicationProperties.tlsKeystorePath
@@ -327,38 +352,45 @@ class SecureRedisClusterImpl(val props: ApplicationProperties) : RedisService {
                 throw RuntimeException("There are missing TLS configurations. Check application.conf file")
             }
 
-            JedisCluster(
-                jedisClusterNodes,
-                2000,
-                2000,
-                5,
-                applicationProperties.redisUsername,
-                applicationProperties.redisPassword,
-                "redis-cluster",
-                GenericObjectPoolConfig<Any>(),
-                true,
-                SSLUtils.getSSLContext(
+            if (redisAuth && !password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    JedisPoolConstructors.buildTLSJedisPoolAuthenticatedLegacy(
+                        applicationProperties,
+                        clientKeyStore,
+                        clientKeyStorePassword,
+                        clientTrustStore,
+                        clientTrustStorePassword
+                    )
+                } else {
+                    JedisPoolConstructors.buildTLSJedisPoolAuthenticated(
+                        applicationProperties,
+                        clientKeyStore,
+                        clientKeyStorePassword,
+                        clientTrustStore,
+                        clientTrustStorePassword
+                    )
+                }
+            } else {
+                JedisPoolConstructors.buildTLSJedisPool(
+                    applicationProperties,
                     clientKeyStore,
                     clientKeyStorePassword,
                     clientTrustStore,
                     clientTrustStorePassword
-                ),
-                null,
-                null,
-                null
-            )
+                )
+            }
         } else {
-            JedisCluster(
-                jedisClusterNodes,
-                2000,
-                2000,
-                5,
-                applicationProperties.redisUsername,
-                applicationProperties.redisPassword,
-                "default",
-                GenericObjectPoolConfig<Any>(),
-                false
-            )
+            return if (redisAuth && !password.isNullOrBlank()) {
+                // Backwards compatibility. For older Redis versions that do not support ACL
+                if (username.isNullOrBlank()) {
+                    JedisPoolConstructors.buildInsecureJedisPoolAuthenticatedLegacy(applicationProperties)
+                } else {
+                    JedisPoolConstructors.buildInsecureJedisPoolAuthenticated(applicationProperties)
+                }
+            } else {
+                JedisPoolConstructors.buildInsecureJedisPool(applicationProperties)
+            }
         }
     }
 }

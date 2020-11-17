@@ -29,7 +29,8 @@ object ConfigurationUtils {
         val props = readPropertiesFile(configurationFile)
 
         return ApplicationProperties(
-            props.getProperty("application.secure")?.toBoolean() ?: false,
+            props.getProperty("redis.encrypted")?.toBoolean() ?: false,
+            props.getProperty("redis.encrypted.homomorphic")?.toBoolean() ?: true,
             props.getProperty("redis.host") ?: "localhost",
             props.getProperty("redis.port")?.toInt() ?: 6379,
 

@@ -8,7 +8,8 @@ enum class ReplicationMode {
 data class RedisNode(val host: String, val port: String, val attestationPort: String)
 
 data class ApplicationProperties(
-    val secure: Boolean,
+    val redisEncrypted: Boolean,
+    val redisEncryptedIsHomomorphic: Boolean,
 
     val redisHost: String,
     val redisPort: Int,

@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service.redis.secure
+package anciaes.secure.redis.service.redis.normal
 
 /* ktlint-disable */
 import anciaes.secure.redis.exceptions.FunctionNotImplementedException

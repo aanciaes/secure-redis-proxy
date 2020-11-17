@@ -4,7 +4,7 @@ https://hub.docker.com/repository/docker/aanciaes/secure-redis-proxy
 ![build and test](https://github.com/aanciaes/redis-homomorphic-enc/workflows/Build%20and%20Test/badge.svg)
 [![GitHub release](https://img.shields.io/github/release/aanciaes/secure-redis-proxy.svg)](https://github.com/aanciaes/secure-redis-proxy/releases/)
 [![GitHub issues](https://img.shields.io/github/issues/aanciaes/secure-redis-proxy.svg)](https://github.com/aanciaes/secure-redis-proxy/issues/)
-![Latest Docker Hub Tag](https://img.shields.io/static/v1.svg?label=DockerLatestTag&message=1.2.1&color=red)
+![Latest Docker Hub Tag](https://img.shields.io/static/v1.svg?label=DockerLatestTag&message=1.3.0&color=red)
 
 This project is an example of a client interacting with a non-secure Redis server.
 To maintain the data secure, it encrypts all data before communicating with the Redis server, therefor, all data stored 

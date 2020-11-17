@@ -2,23 +2,23 @@ package anciaes.secure.redis
 
 import anciaes.secure.redis.model.ReplicationMode
 import anciaes.secure.redis.service.redis.RedisService
-import anciaes.secure.redis.service.redis.secure.RedisClusterImpl
-import anciaes.secure.redis.service.redis.secure.RedisServiceImpl
-import anciaes.secure.redis.service.redis.unsecure.SecureRedisClusterImpl
-import anciaes.secure.redis.service.redis.unsecure.SecureRedisServiceImpl
+import anciaes.secure.redis.service.redis.encrypted.EncryptedRedisClusterImpl
+import anciaes.secure.redis.service.redis.encrypted.EncryptedRedisServiceImpl
+import anciaes.secure.redis.service.redis.normal.RedisClusterImpl
+import anciaes.secure.redis.service.redis.normal.RedisServiceImpl
 import anciaes.secure.redis.utils.ConfigurationUtils
 import java.util.concurrent.TimeUnit
 
 fun main() {
     val props = ConfigurationUtils.loadApplicationConfigurations()
-    val redisService: RedisService = if (!props.secure) {
+    val redisService: RedisService = if (props.redisEncrypted) {
 
         if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {
             println("Initializing Encrypted Redis Cluster...")
-            SecureRedisClusterImpl(props)
+            EncryptedRedisClusterImpl(props)
         } else {
             println("Initializing Encrypted Redis...")
-            SecureRedisServiceImpl(props)
+            EncryptedRedisServiceImpl(props)
         }
     } else {
         if (props.replicationEnabled && props.replicationMode == ReplicationMode.Cluster) {

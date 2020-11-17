@@ -1,4 +1,4 @@
-package anciaes.secure.redis.service.redis.secure
+package anciaes.secure.redis.service.redis.normal
 
 import anciaes.secure.redis.exceptions.KeyNotFoundException
 import anciaes.secure.redis.exceptions.ValueWronglyFormatted
