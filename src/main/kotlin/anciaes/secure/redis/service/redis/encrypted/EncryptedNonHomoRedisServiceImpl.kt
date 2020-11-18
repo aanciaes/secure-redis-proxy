@@ -9,12 +9,14 @@ import anciaes.secure.redis.service.redis.RedisService
 import anciaes.secure.redis.utils.JedisPoolConstructors
 import anciaes.secure.redis.utils.KeystoreUtils
 import hlib.hj.mlib.HomoDet
-import java.nio.charset.Charset
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.security.Signature
 import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.Mac
+import javax.crypto.spec.IvParameterSpec
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.params.SetParams
 
@@ -24,6 +26,9 @@ class EncryptedNonHomoRedisServiceImpl(val props: ApplicationProperties) : Redis
 
     // Homo Det Keys
     private val homoDetKey = HomoDet.keyFromString(props.keyEncryptionDetSecret)
+
+    private val iv = ByteArray(16)
+    private val cipherAlgorithm = "AES/CBC/PKCS5Padding"
 
     // Load KeySpecs
     private val encryptionKey = KeystoreUtils.getKeyFromKeyStore(
@@ -144,11 +149,52 @@ class EncryptedNonHomoRedisServiceImpl(val props: ApplicationProperties) : Redis
     }
 
     override fun sAdd(key: String, vararg values: String): String {
-        throw NotImplementedError("Zadd is not implemented for Non Homomorphic Encryption Redis")
+        val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+        val encryptedValues = values.map {
+            encryptValue(it)
+        }
+
+        val test = computeSecureValue(values.first())
+        println(getSecureValue(test))
+
+        jedisPool.resource.use { jedis ->
+            return if (jedis.sadd(
+                    encryptedKey,
+                    *encryptedValues.toTypedArray()
+                ) > 0
+            ) RedisResponses.OK else RedisResponses.NOK
+        }
     }
 
     override fun sMembers(key: String, search: String?): List<String> {
-        throw NotImplementedError("Zadd is not implemented for Non Homomorphic Encryption Redis")
+        jedisPool.resource.use { jedis ->
+            val encryptedKey = HomoDet.encrypt(homoDetKey, key)
+            val rst = jedis.smembers(encryptedKey)
+
+            val searchTerms = search?.split(" ") ?: emptyList()
+
+            val results = mutableListOf<String>()
+
+            rst.forEach {
+                val decryptedLine = decryptValue(it)
+                val decryptedLineWords = decryptedLine.split(" ")
+
+                if (search != null && searchTerms.isNotEmpty()) {
+                    for (word in decryptedLineWords) {
+                        for (searchTerm in searchTerms) {
+                            if (word.contains(searchTerm)) {
+                                results.add(decryptedLine)
+                                break
+                            }
+                        }
+                    }
+                } else {
+                    results.add(decryptedLine)
+                }
+            }
+
+            return results
+        }
     }
 
     override fun flushAll(): String {
@@ -182,23 +228,52 @@ class EncryptedNonHomoRedisServiceImpl(val props: ApplicationProperties) : Redis
     }
 
     private fun encryptValue(value: String): String {
-        val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
+        val cipher: Cipher = Cipher.getInstance(cipherAlgorithm, props.dataEncryptionProvider)
 
-        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey)
-        cipher.update(value.toByteArray(Charset.defaultCharset()))
+        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, IvParameterSpec(iv))
 
-        val encryptedBytes = cipher.doFinal()
-        return Base64.getEncoder().encodeToString(encryptedBytes)
+        val inputStream = ByteArrayInputStream(value.toByteArray())
+        val outputStream = ByteArrayOutputStream()
+
+        var len: Int
+        do {
+            val ibuf = ByteArray(1024)
+            len = inputStream.read(ibuf)
+            if (len > -1) {
+                val obuf: ByteArray = cipher.update(ibuf, 0, len)
+                outputStream.write(obuf)
+            }
+        } while (len != -1)
+
+        val obuf: ByteArray = cipher.doFinal()
+        outputStream.write(obuf)
+
+        return Base64.getEncoder().encodeToString(outputStream.toByteArray())
     }
 
     private fun decryptValue(cipherText: String): String {
-        val cipher: Cipher = Cipher.getInstance(props.dataEncryptionCipherSuite, props.dataEncryptionProvider)
+        val cipher: Cipher = Cipher.getInstance(cipherAlgorithm, props.dataEncryptionProvider)
 
-        cipher.init(Cipher.DECRYPT_MODE, encryptionKey)
-        cipher.update(Base64.getDecoder().decode(cipherText))
+        cipher.init(Cipher.DECRYPT_MODE, encryptionKey, IvParameterSpec(iv))
+        val encryptedText = Base64.getDecoder().decode(cipherText)
 
-        val encryptedBytes = cipher.doFinal()
-        return String(encryptedBytes)
+        val inputStream = ByteArrayInputStream(encryptedText)
+        val outputStream = ByteArrayOutputStream()
+
+        var len: Int
+        do {
+            val ibuf = ByteArray(1024)
+            len = inputStream.read(ibuf)
+            if (len > -1) {
+                val obuf: ByteArray = cipher.update(ibuf, 0, len)
+                outputStream.write(obuf)
+            }
+        } while (len != -1)
+
+        val obuf: ByteArray = cipher.doFinal()
+        outputStream.write(obuf)
+
+        return String(outputStream.toByteArray())
     }
 
     private fun signData(data: String): String {
