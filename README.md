@@ -21,7 +21,7 @@ Values stored in Sets can be searched over encrypted data as well.
 
 ## How to Run
 
-### Api Mode
+### On ther terminal
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
 2. Make sure to have a Keycloak server running (SSO). To deploy a local SSO Server check out the [Deploy a Local Keycloak Server](#deploy-a-local-keycloak-server) bellow.
 3. Navigate to `src/main/resources/application.conf` and change the configuration at will.
@@ -30,7 +30,7 @@ Values stored in Sets can be searched over encrypted data as well.
 6. Login to SSO and save the Access Token.
 7. Use API with the access token.
 
-### Api Mode with Docker
+### Run with Docker
 
 1. Make sure to have a Redis Server running. To deploy a local Redis Server check out the [Deploy a Local Redis Server](#deploy-a-local-redis-server) bellow.
 3. Make sure to have a Keycloak server running (SSO). To deploy a local SSO Server check out the [Deploy a Local Keycloak Server](#deploy-a-local-keycloak-server) bellow.
